@@ -315,9 +315,9 @@ export default function Home() {
         <div className="p-4 flex items-center justify-between border-b border-[var(--border-color)] h-16 flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-11 h-11 rounded-full border border-[var(--border-color)] flex items-center justify-center bg-[var(--card-bg)] shadow-sm overflow-hidden">
-              <img src="/logo.png" alt="Retro AI Logo" className="w-full h-full object-cover" />
+              <img src="/logo.png" alt="Cresent AI Logo" className="w-full h-full object-cover" />
             </div>
-            <h1 className="text-sm font-serif font-bold tracking-tight text-[var(--foreground)]">Retro AI</h1>
+            <h1 className="text-sm font-serif font-bold tracking-tight text-[var(--foreground)]">Cresent AI</h1>
           </div>
           <button 
             onClick={() => setSidebarOpen(false)}
@@ -470,9 +470,9 @@ export default function Home() {
             ) : (
               <div className="flex items-center gap-2.5 pl-10">
                 <div className="w-10 h-10 rounded-full border border-[var(--border-color)] flex items-center justify-center bg-[var(--card-bg)] overflow-hidden">
-                  <img src="/logo.png" alt="Retro AI Logo" className="w-full h-full object-cover" />
+                  <img src="/logo.png" alt="Cresent AI Logo" className="w-full h-full object-cover" />
                 </div>
-                <span className="text-sm font-serif font-bold">Retro AI</span>
+                <span className="text-sm font-serif font-bold">Cresent AI</span>
               </div>
             )}
           </div>
@@ -536,7 +536,7 @@ export default function Home() {
 
           {/* Minimal info footer in center workspace */}
           <footer className="w-full text-center text-[10px] text-neutral-400 dark:text-neutral-500 font-medium select-none pt-4 border-t border-[var(--border-color)]/30 font-mono uppercase">
-            Retro AI Core Engine Pipeline • Calibrated Personalization Layer
+            Cresent AI Core Engine Pipeline • Calibrated Personalization Layer
           </footer>
 
         </div>

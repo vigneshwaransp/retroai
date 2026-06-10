@@ -13,7 +13,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Retro AI - Communication DNA Chatbot",
+  title: "Cresent AI - Communication DNA Chatbot",
   description: "Personality-aware AI assistant that adapts to your communication DNA, tone context, and emotional mood.",
 };
 
