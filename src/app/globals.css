@@ -1,0 +1,280 @@
+@import "tailwindcss";
+
+:root {
+  --background: #F9F8F6; /* Warm eggshell paper */
+  --foreground: #191919;
+  
+  --border-color: #E2E2DF;
+  --shadow-color: rgba(25, 25, 25, 0.04);
+  
+  --accent-primary: #10B981; /* Premium emerald green */
+  --accent-primary-hover: #059669;
+  
+  --sidebar-bg: #F1EFEA;
+  --card-bg: #FFFFFF;
+  --input-bg: #FFFFFF;
+  
+  --accent-green: #10B981;
+  --accent-cyan: #06B6D4;
+  --accent-pink: #EC4899;
+  --accent-yellow: #F59E0B;
+  
+  --mono-card: var(--card-bg);
+  --mono-border: var(--border-color);
+  --mono-hover: var(--accent-primary);
+  --mono-input: var(--input-bg);
+  --mono-input-border: var(--border-color);
+  --mono-shadow: 0 1px 3px var(--shadow-color);
+}
+
+html.dark {
+  --background: #191919; /* Warm dark charcoal */
+  --foreground: #E3E3E2;
+  
+  --border-color: #2D2D2D;
+  --shadow-color: rgba(0, 0, 0, 0.2);
+  
+  --accent-primary: #34D399; /* Premium mint green */
+  --accent-primary-hover: #10B981;
+  
+  --sidebar-bg: #111111;
+  --card-bg: #222222;
+  --input-bg: #222222;
+  
+  --accent-green: #34D399;
+  --accent-cyan: #22D3EE;
+  --accent-pink: #F472B6;
+  --accent-yellow: #FBBF24;
+  
+  --mono-card: var(--card-bg);
+  --mono-border: var(--border-color);
+  --mono-hover: var(--accent-primary);
+  --mono-input: var(--input-bg);
+  --mono-input-border: var(--border-color);
+  --mono-shadow: 0 2px 8px var(--shadow-color);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-space-grotesk), 'Space Grotesk', monospace;
+  --font-serif: 'Source Serif Pro', 'Georgia', serif;
+}
+
+body {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+  font-family: var(--font-sans), sans-serif;
+  overflow-x: hidden;
+  position: relative;
+  padding: 0;
+  margin: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Elegant, rounded paper cards (Claude-like) */
+@utility brutal-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 1px 3px var(--shadow-color), 0 10px 40px -10px rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+  &:hover {
+    border-color: rgba(217, 119, 6, 0.3);
+    box-shadow: 0 4px 12px var(--shadow-color), 0 20px 50px -12px rgba(0, 0, 0, 0.04);
+  }
+}
+
+/* Minimalist elegant buttons */
+@utility brutal-btn {
+  background: var(--card-bg);
+  color: var(--foreground);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 650;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 8px 16px;
+
+  &:hover {
+    background: var(--background);
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+@utility brutal-btn-active {
+  background: var(--accent-primary) !important;
+  color: #FFFFFF !important;
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 2px 8px var(--shadow-color) !important;
+}
+
+/* Warm input styling */
+@utility brutal-input {
+  background: var(--input-bg);
+  color: var(--foreground);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 14px;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.12);
+  }
+}
+
+/* Custom Select Dropdowns */
+@utility brutal-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg fill='none' stroke='%2310b981' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'></path></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  padding-right: 36px;
+}
+
+html.dark .brutal-select {
+  background-image: url("data:image/svg+xml;utf8,<svg fill='none' stroke='%2334d399' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'></path></svg>");
+}
+
+/* Custom Sliders */
+input[type="range"].brutal-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  outline: none;
+}
+
+input[type="range"].brutal-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--accent-primary);
+  border: 1px solid #ffffff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: transform 0.15s ease;
+}
+
+input[type="range"].brutal-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Backwards compatibility aliases */
+@utility mono-card {
+  @apply brutal-card;
+}
+
+@utility mono-btn {
+  @apply brutal-btn;
+}
+
+@utility mono-btn-active {
+  @apply brutal-btn-active;
+}
+
+@utility mono-input {
+  @apply brutal-input;
+}
+
+@utility mono-select {
+  @apply brutal-select;
+}
+
+input[type="range"].nm-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  outline: none;
+}
+
+input[type="range"].nm-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--accent-primary);
+  border: 1px solid #ffffff;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: transform 0.15s ease;
+}
+
+input[type="range"].nm-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Serif Headings (Claude Style) */
+h1, h2, h3, h4 {
+  font-family: var(--font-serif), 'Source Serif Pro', 'Georgia', serif;
+  font-weight: 550;
+  text-transform: none;
+  letter-spacing: -0.01em;
+}
+
+.text-shadow-glow {
+  text-shadow: none;
+}
+
+/* Claude style code outputs */
+.terminal-output {
+  background-color: #FDFDFD !important;
+  color: #1A1A1A !important;
+  font-family: var(--font-mono), monospace;
+  border: 1px solid #E2E2DF;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+html.dark .terminal-output {
+  background-color: #111111 !important;
+  color: #E3E3E2 !important;
+  border-color: #2D2D2D;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 3px;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.15);
+  }
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
