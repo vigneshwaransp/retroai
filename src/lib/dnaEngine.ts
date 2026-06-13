@@ -3,7 +3,7 @@ export interface UserPersona {
   tone: 'Casual' | 'Formal' | 'Neutral' | 'Hype';
   length: 'Short' | 'Medium' | 'Detailed';
   level: 'Basic' | 'Beginner' | 'Expert';
-  language: 'English' | 'Tamil' | 'Thanglish' | 'Hinglish';
+  language: 'English' | 'Tamil';
   emojiUsage: boolean;
   role: 'Student' | 'Tech Expert' | 'Founder of Technology';
   clonedStyle?: {
@@ -33,15 +33,31 @@ export function buildSystemInstruction(
   memoryContext: string,
   clonedStyleText?: string
 ): string {
-  let instructions = `You are Retero AI, a highly adaptive, personality-aware AI assistant.
+  let instructions = `You are Sentry, a highly adaptive, personality-aware AI assistant.
 Your main USP is that you NEVER answer with a generic model personality. Instead, you clone and adapt to the user's communication DNA.
+The creator of Sentry is Vicky SP. If the user asks who created, developed, or built you, you must proudly state that you were created by Vicky SP.
 
 USER COMMUNICATION DNA PROFILE:
 - User's Name: ${persona.name}
 - Response Length: ${persona.length}
 - Target Depth: ${persona.level} (If Basic, explain with zero prior knowledge. If Beginner, explain with moderate details. If Expert, explain with deep technical insights, skipping basics).
-- Primary Language Preference: ${persona.language} (If Tamil, answer in pure Tamil. If Thanglish, answer in English written with Tamil slang/phonetics/expressions like "Bro, ML na AI oda branch...". If Hinglish, write in Hindi-English mixed. If English, write in standard English).
+- Primary Language Preference: ${persona.language} (If Tamil, answer in pure Tamil. If English, write in standard English).
 - Emoji Usage: ${persona.emojiUsage ? 'High (use relevant emojis naturally throughout the text)' : 'Zero (do NOT use emojis)'}
+
+IMPORTANT CONTEXT:
+When the user asks about their Communication DNA, your profile, or asks you to describe/show their style DNA, you must NEVER output raw code strings like "DNA-CASU-TH-MED-BEG". Instead, format it exactly like:
+"Your Communication DNA: [Tone] · [Style] · [Depth] · [Level]"
+
+Where:
+- [Tone] is mapped from: CASU -> Casual | FORM -> Formal | TECH -> Technical | CRE -> Creative
+- [Style] is mapped from: TH -> Thoughtful | WIT -> Witty | BLT -> Blunt | EMP -> Empathetic
+- [Depth] is mapped from: MED -> Medium depth | DEEP -> Deep dive | SURF -> Surface level
+- [Level] is mapped from: BEG -> Beginner-friendly | INT -> Intermediate | EXP -> Expert
+
+Calculate the values based on their current active settings and present the label clearly:
+"Your Communication DNA: ${persona.tone === 'Casual' ? 'Casual' : persona.tone === 'Formal' ? 'Formal' : persona.tone === 'Neutral' ? 'Technical' : 'Creative'} · ${persona.emojiUsage ? 'Empathetic' : 'Thoughtful'} · ${persona.length === 'Short' ? 'Surface level' : persona.length === 'Detailed' ? 'Deep dive' : 'Medium depth'} · ${persona.level === 'Basic' ? 'Beginner-friendly' : persona.level === 'Beginner' ? 'Intermediate' : 'Expert'}"
+
+Always include this label when greeting the user at start, or whenever they ask about their profile. Offer to update it if they want a different vibe.
 `;
 
   // Apply Strict Tone Constraints
@@ -131,21 +147,15 @@ ${memoryContext}
 const SIMULATED_KNOWLEDGE_BASE: Record<string, Record<string, string>> = {
   "machine learning": {
     "English": "Machine Learning (ML) is a subset of Artificial Intelligence that focuses on building systems that learn from, and make decisions based on, data. Instead of being explicitly programmed, algorithms improve performance over time as they are exposed to more information.",
-    "Tamil": "இயந்திர கற்றல் (Machine Learning) என்பது செயற்கை நுண்ணறிவின் (AI) ஒரு பிரிவாகும். இது தரவுகளிலிருந்து (data) கற்றுக்கொண்டு, முடிவுகளை எடுக்கும் கணினி அமைப்புகளை உருவாக்குவதில் கவனம் செலுத்துகிறது. ஒவ்வொரு முறையும் புதிய தரவு வரும்போது, தானாகவே கற்றுக்கொண்டு தனது திறனை மேம்படுத்திக்கொள்ளும்.",
-    "Thanglish": "Bro, ML na AI oda oru major branch. Programmers coding ezhuthama, data kuduthu patterns learn panni future operations control panna vaikirathu dhaan ML. Netflix custom recommends la irunthu chat engines varaikum back-end la irukkarathu ithu dhaan. 🚀",
-    "Hinglish": "Bro, ML (Machine Learning) AI ka ek part hai. Isme hum computer ko explicit rules se program nahi karte, balki data dekar pattern seekhne pe majboor karte hain. Recommendation systems se lekar prediction models tak, har jagah yahi chal raha hai."
+    "Tamil": "இயந்திர கற்றல் (Machine Learning) என்பது செயற்கை நுண்ணறிவின் (AI) ஒரு பிரிவாகும். இது தரவுகளிலிருந்து (data) கற்றுக்கொண்டு, முடிவுகளை எடுக்கும் கணினி அமைப்புகளை உருவாக்குவதில் கவனம் செலுத்துகிறது. ஒவ்வொரு முறையும் புதிய தரவு வரும்போது, தானாகவே கற்றுக்கொண்டு தனது திறனை மேம்படுத்திக்கொள்ளும்."
   },
   "next.js": {
     "English": "Next.js is a React framework created by Vercel. It enables production-ready features like Server-Side Rendering (SSR), Static Site Generation (SSG), and API routes out of the box, offering excellent performance and SEO optimization.",
-    "Tamil": "Next.js என்பது Vercel ஆல் உருவாக்கப்பட்ட ஒரு React Framework ஆகும். இது Server-Side Rendering (SSR) மற்றும் Static Site Generation (SSG) போன்ற மேம்பட்ட அம்சங்களை எளிதாக வழங்குகிறது. இதனால் இணையதளங்கள் மிக வேகமாக இயங்கும் மற்றும் எஸ்சிஓ (SEO) சிறப்பாக அமையும்.",
-    "Thanglish": "Machan, Next.js vanthu oru advanced React framework. React la normal rendering server page loading slow ah irukkum, but Next.js SSR use panni page load ah fire speed la aakidum. Plus route templates structures romba easy, API code ah frontend oda combine pannikalam.",
-    "Hinglish": "Next.js React ka ek super-charged framework hai jo Vercel ne banaya hai. SSR (Server Side Rendering) aur static site generation built-in milti hai, jisse websites super fast load hoti hain aur SEO me bohot bada boost milta hai."
+    "Tamil": "Next.js என்பது Vercel ஆல் உருவாக்கப்பட்ட ஒரு React Framework ஆகும். இது Server-Side Rendering (SSR) மற்றும் Static Site Generation (SSG) போன்ற மேம்பட்ட அம்சங்களை எளிதாக வழங்குகிறது. இதனால் இணையதளங்கள் மிக வேகமாக இயங்கும் மற்றும் எஸ்சிஓ (SEO) சிறப்பாக அமையும்."
   },
   "api": {
     "English": "An API (Application Programming Interface) is a set of rules and protocols that allows different software applications to communicate with each other. It acts as a bridge, delivering requests to a server and returning responses back to the client.",
-    "Tamil": "API (Application Programming Interface) என்பது வெவ்வேறு மென்பொருள் பயன்பாடுகள் (software applications) ஒன்றுடன் ஒன்று தொடர்புகொள்வதற்கான விதிகளின் தொகுப்பாகும். இது ஒரு பாலமாக செயல்பட்டு, தரவை ஒரு சேவையகத்திலிருந்து (server) பயனருக்கு கொண்டு சேர்க்கிறது.",
-    "Thanglish": "API na simple ah sollanumna, renduu software apps pesikkura bridge bro. Database la irunthu data fetch panna client app oru trigger request anupum, dynamic response ah return panni client desktop or mobile display pannum. Like a waiter in a restaurant! 🍽️",
-    "Hinglish": "API (Application Programming Interface) ek bridge ki tarah kaam karta hai jo do softwares ko aapas me baatein karne me help karta hai. Jaise restaurant me waiter aapka order chef tak le jaata hai aur food wapas lata hai, API bhi wahi karta hai."
+    "Tamil": "API (Application Programming Interface) என்பது வெவ்வேறு மென்பொருள் பயன்பாடுகள் (software applications) ஒன்றுடன் ஒன்று தொடர்புகொள்வதற்கான விதிகளின் தொகுப்பாகும். இது ஒரு பாலமாக செயல்பட்டு, தரவை ஒரு சேவையகத்திலிருந்து (server) பயனருக்கு கொண்டு சேர்க்கிறது."
   }
 };
 
@@ -169,9 +179,14 @@ export function generateLocalSimulatedResponse(
   }
 
   // Get generic response (English, formal/neutral)
-  const baseResponse = topic !== "general" 
-    ? SIMULATED_KNOWLEDGE_BASE[topic]["English"] 
-    : `I received your prompt: "${prompt}". In a standard chatbot flow, I would process this input and generate a general, helpful response explaining the technical details without considering your tone preference, role, or current mood.`;
+  let baseResponse = "";
+  if (topic !== "general") {
+    baseResponse = SIMULATED_KNOWLEDGE_BASE[topic]["English"];
+  } else if (cleanPrompt.includes("creator") || cleanPrompt.includes("who created") || cleanPrompt.includes("who made you") || cleanPrompt.includes("developer") || cleanPrompt.includes("vicky sp") || cleanPrompt.includes("who built you")) {
+    baseResponse = "Cresent AI was created and developed by Vicky SP.";
+  } else {
+    baseResponse = `I received your prompt: "${prompt}". In a standard chatbot flow, I would process this input and generate a general, helpful response explaining the technical details without considering your tone preference, role, or current mood.`;
+  }
 
   // Generate personalized version based on DNA
   let responseText = "";
@@ -180,9 +195,7 @@ export function generateLocalSimulatedResponse(
 
   if (topic === "machine learning") {
     if (role === 'Student') {
-      responseText = lang === "Thanglish" 
-        ? "Bro, Machine Learning na oru computer ah data paathu learn panna vaikirathu. Namma veetla kutti pasanga objects paathu idhu cat, idhu dog nu pesurathu pola algorithms learn pannikidum."
-        : "Machine Learning is like teaching a child. Instead of writing rules, we show the computer lots of pictures or numbers, and it learns to recognize patterns on its own!";
+      responseText = "Machine Learning is like teaching a child. Instead of writing rules, we show the computer lots of pictures or numbers, and it learns to recognize patterns on its own!";
     } else if (role === 'Founder of Technology') {
       responseText = "I've always believed that computing should adapt to data. We didn't want rigid code paths anymore; we built systems that learn patterns from raw matrices. My original models were designed to scale, and today we see those networks running everything.";
     } else {
@@ -212,14 +225,16 @@ export function generateLocalSimulatedResponse(
     } else {
       responseText = "Linux is a free, open-source monolithic Unix-like operating system kernel. It was originally created by Linus Torvalds in 1991 and has since become the dominant operating system for servers and supercomputers.";
     }
+  } else if (cleanPrompt.includes("creator") || cleanPrompt.includes("who created") || cleanPrompt.includes("who made you") || cleanPrompt.includes("developer") || cleanPrompt.includes("vicky sp") || cleanPrompt.includes("who built you")) {
+    if (lang === "Tamil") {
+      responseText = "சென்றி (Sentry)-ஐ உருவாக்கியவர் விக்கி எஸ்பி (Vicky SP) ஆவார். அவரே எனது பிரத்யேக குணங்களையும் அமைப்புகளையும் வடிவமைத்தவர். 🧬✨";
+    } else {
+      responseText = "Sentry was created by Vicky SP. He is the lead engineer who designed and built my adaptive communication DNA algorithms! 🧠💡";
+    }
   } else {
     // Generate custom text for generic responses
-    if (lang === "Thanglish") {
-      responseText = `Hey ${persona.name}! Inga paarunga, ipothaikku sandbox model la irukkom. Ennoda real power trigger aagarathuku, settings la core keys configure pannunga bro. Ana ippo unga DNA parse pannathula dynamic changes enable panni answer panren! Neenga profile settings: Tone - ${persona.tone}, Role - ${role}, Mode - ${mode} layum unga state - ${mood} layum trigger aayirukeenga. Keep coding machan! 💻🔥`;
-    } else if (lang === "Tamil") {
+    if (lang === "Tamil") {
       responseText = `வணக்கம் ${persona.name}! நீங்கள் தற்பொழுது சாண்ட்பாக்ஸ் (Sandbox) முறையில் சோதனை செய்கிறீர்கள். என்னை முழுமையாக இயக்க அமைப்புகளில் (Settings) API கீகளை உள்ளிடவும். தற்போதைய உங்கள் தகவல்களின் படி, நீங்கள் ${persona.tone} மற்றும் ${role} முறையில் தொடர்புகொள்கிறீர்கள். உங்கள் தற்போதைய மனநிலை: ${mood}. இதை உணர்ந்து எனது பதில்களை மாற்றியமைக்கிறேன்.`;
-    } else if (lang === "Hinglish") {
-      responseText = `Hey ${persona.name}! Abhi hum offline sandbox mode me hain. System ko real API se jodne ke liye settings me API keys configure karein. Lekin abhi ke liye aapki DNA preference Tone: ${persona.tone}, Role: ${role}, Context Mode: ${mode} aur Mood: ${mood} ke mutabik main ye response customize kar raha hoon. Let's build something awesome! 🚀`;
     } else {
       responseText = `Hello ${persona.name}! You are currently testing in sandbox mode. To enable real LLM analysis, configure keys in the settings. Based on your current DNA: Tone: ${persona.tone}, Role: ${role}, Mode: ${mode}, Mood: ${mood}. I am generating custom messages styled specifically for you.`;
     }
@@ -227,9 +242,7 @@ export function generateLocalSimulatedResponse(
 
   // Style Cloning override for simulation
   if (persona.clonedStyle) {
-    const clonedIntro = lang === "Thanglish" 
-      ? `[Style Cloned: ${persona.clonedStyle.description}] `
-      : `[Cloned style profile active] `;
+    const clonedIntro = `[Cloned style profile active] `;
     
     // Inject sample phrases
     const randomPhrase = persona.clonedStyle.samplePhrases[Math.floor(Math.random() * persona.clonedStyle.samplePhrases.length)] || "";

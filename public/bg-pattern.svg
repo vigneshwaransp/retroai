@@ -2,7 +2,7 @@
   <style>
     .word {
       fill: var(--accent-primary, #10B981);
-      opacity: 0.045;
+      opacity: 0.08;
       font-family: var(--font-sans), system-ui, sans-serif;
       font-weight: 500;
     }

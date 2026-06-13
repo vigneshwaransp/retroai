@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserPersona } from '@/lib/dnaEngine';
-import { Upload, Check, AlertCircle, Terminal, Cpu } from 'lucide-react';
+import { Upload, Check, AlertCircle, Terminal, Cpu, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { playSynthSound } from '@/app/page';
@@ -10,9 +10,16 @@ interface StyleClonerProps {
   setPersona: React.Dispatch<React.SetStateAction<UserPersona>>;
   apiKey: string;
   isMuted?: boolean;
+  isLocked?: boolean;
 }
 
-export default function StyleCloner({ persona, setPersona, apiKey, isMuted = false }: StyleClonerProps) {
+export default function StyleCloner({ 
+  persona, 
+  setPersona, 
+  apiKey, 
+  isMuted = false,
+  isLocked = false
+}: StyleClonerProps) {
   const [inputText, setInputText] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzed, setAnalyzed] = useState(false);
@@ -20,6 +27,7 @@ export default function StyleCloner({ persona, setPersona, apiKey, isMuted = fal
   const [scanLogs, setScanLogs] = useState<string[]>([]);
 
   const handlePasteSample = (text: string) => {
+    if (isLocked) return;
     playSynthSound('click', isMuted);
     setInputText(text);
   };
@@ -40,6 +48,7 @@ export default function StyleCloner({ persona, setPersona, apiKey, isMuted = fal
   ];
 
   const resetClone = () => {
+    if (isLocked) return;
     playSynthSound('delete', isMuted);
     setPersona(prev => ({
       ...prev,
@@ -50,7 +59,8 @@ export default function StyleCloner({ persona, setPersona, apiKey, isMuted = fal
     setScanLogs([]);
   };
 
-  const analyzeStyleLocally = (text: string) => {
+  const analyzeStyleLocally = async (text: string) => {
+    if (isLocked) return;
     if (text.trim().length < 20) {
       playSynthSound('delete', isMuted);
       setError('Please enter at least 20 characters to analyze your writing DNA.');
@@ -63,82 +73,78 @@ export default function StyleCloner({ persona, setPersona, apiKey, isMuted = fal
     playSynthSound('scan', isMuted);
 
     const logSteps = [
-      'Initializing parser middleware...',
-      'Reading text buffer characters...',
-      'Counting words and sentence limits...',
-      'Extracting punctuation capitalization rates...',
-      'Detecting vocabulary slang density...',
-      'Evaluating emoji distribution patterns...',
-      'Compiling system instructions prompt...',
-      'Synthesizing cloned DNA profile successfully!'
+      'Establishing connection to NVIDIA Kimi-k2.6 cluster...',
+      'Uploading text content for syntactic signature parsing...',
+      'Extracting typical sentence lengths...',
+      'Deconstructing vocabulary dialect distribution...',
+      'Sequencing signature phrasing patterns...',
+      'Mapping final style cloning guidelines...'
     ];
 
     logSteps.forEach((step, idx) => {
       setTimeout(() => {
-        setScanLogs(prev => [...prev, `[SYSTEM] ${step}`]);
+        setScanLogs(prev => [...prev, `[ONLINE LLM] ${step}`]);
         playSynthSound('click', isMuted);
-      }, idx * 280);
+      }, idx * 400);
     });
 
-    setTimeout(() => {
-      const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
-      const words = text.split(/\s+/).filter(w => w.trim().length > 0);
-      const avgSentenceLen = Math.round(words.length / (sentences.length || 1));
-
-      const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F1E0}-\u{1F1FF}]/gu;
-      const emojisFound = text.match(emojiRegex) || [];
-      const emojiFrequency = emojisFound.length / (sentences.length || 1);
-
-      const capitalWords = words.filter(w => w[0] === w[0]?.toUpperCase() && w[0]?.toLowerCase() !== w[0]?.toUpperCase());
-      const capitalizationRate = capitalWords.length / words.length;
-
-      const textLower = text.toLowerCase();
-      
-      let description = 'Clean, direct style';
-      let clonedRules = 'Maintain natural rhythm.';
-      if (emojiFrequency > 0.5) {
-        description = 'Expressive, emoji-rich style';
-        clonedRules = 'Incorporate relevant emojis naturally at the end of key phrases.';
-      } else if (capitalizationRate < 0.1) {
-        description = 'Highly informal, lower-case writing style';
-        clonedRules = 'Keep the grammar very casual. Do not capitalize the start of sentences.';
-      } else if (avgSentenceLen > 18) {
-        description = 'Analytical, compound structure';
-        clonedRules = 'Use academic terminology, structured connectors, and compound sentences.';
-      } else if (textLower.includes('bro') || textLower.includes('machan')) {
-        description = 'Casual Tech-Slang Dialect';
-        clonedRules = 'Blend casual tech speak with local slangs. Sprinkle "bro" and "machan" frequently.';
-      }
-
-      const phraseSamples = sentences
-        .slice(0, 3)
-        .map(s => s.trim())
-        .filter(s => s.length > 5);
-
-      setPersona(prev => ({
-        ...prev,
-        clonedStyle: {
-          description,
-          samplePhrases: phraseSamples,
-          emojiFrequency: Number(emojiFrequency.toFixed(2)),
-          avgSentenceLength: avgSentenceLen,
-          clonedRules
-        }
-      }));
-
-      setIsAnalyzing(false);
-      setAnalyzed(true);
-      playSynthSound('success', isMuted);
-
-      // Elegant emerald green, mint, and white particles
-      confetti({
-        particleCount: 120,
-        spread: 80,
-        origin: { y: 0.75 },
-        colors: ['#10B981', '#34D399', '#ffffff', '#a7f3d0']
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'analyze_style',
+          text,
+          apiKey
+        })
       });
 
-    }, 2600);
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Server returned an error.');
+      }
+
+      const styleData = await response.json();
+
+      // Slower delay to match console logs timing before writing state
+      setTimeout(() => {
+        const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
+        const words = text.split(/\s+/).filter(w => w.trim().length > 0);
+        const avgSentenceLen = Math.round(words.length / (sentences.length || 1));
+
+        const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F1E0}-\u{1F1FF}]/gu;
+        const emojisFound = text.match(emojiRegex) || [];
+        const emojiFrequency = emojisFound.length / (sentences.length || 1);
+
+        setPersona(prev => ({
+          ...prev,
+          clonedStyle: {
+            description: styleData.description || "Custom Cloned Style",
+            samplePhrases: styleData.samplePhrases || sentences.slice(0, 3).map(s => s.trim()).filter(s => s.length > 5),
+            emojiFrequency: Number(emojiFrequency.toFixed(2)),
+            avgSentenceLength: styleData.avgSentenceLength || avgSentenceLen,
+            clonedRules: styleData.clonedRules || "Adapt text length and punctuation to the style sample."
+          }
+        }));
+
+        setIsAnalyzing(false);
+        setAnalyzed(true);
+        playSynthSound('success', isMuted);
+
+        confetti({
+          particleCount: 120,
+          spread: 80,
+          origin: { y: 0.75 },
+          colors: ['#10B981', '#34D399', '#ffffff', '#a7f3d0']
+        });
+      }, 2600);
+
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Style analysis failed. Check API key configuration.');
+      setIsAnalyzing(false);
+      playSynthSound('delete', isMuted);
+    }
   };
 
   return (
@@ -158,7 +164,7 @@ export default function StyleCloner({ persona, setPersona, apiKey, isMuted = fal
       </div>
 
       <p className="text-xs text-neutral-400 dark:text-neutral-500 font-semibold leading-relaxed">
-        Feed Retro your writing samples (emails, chats, articles). The AI engine will sequence your vocabulary patterns, syntax pacing, and sentence density to clone your voice.
+        Feed Cresent AI your writing samples (emails, chats, articles). The AI engine will sequence your vocabulary patterns, syntax pacing, and sentence density to clone your voice.
       </p>
 
       <AnimatePresence mode="wait">
@@ -170,12 +176,20 @@ export default function StyleCloner({ persona, setPersona, apiKey, isMuted = fal
             exit={{ opacity: 0, y: -10 }}
             className="flex flex-col gap-4"
           >
+            {isLocked && (
+              <div className="flex items-center gap-2 text-amber-605 dark:text-amber-400 text-xs font-bold border border-amber-200 dark:border-amber-900/50 p-3 bg-amber-50 dark:bg-amber-950/20 select-none rounded-lg">
+                <Lock className="w-4 h-4 flex-shrink-0 text-amber-500" />
+                <span>DNA Style is locked. Unlock in Persona DNA settings to modify.</span>
+              </div>
+            )}
+
             {/* Template Buttons */}
-            <div className="flex flex-wrap gap-2 select-none">
+            <div className={`flex flex-wrap gap-2 select-none ${isLocked ? 'opacity-50 pointer-events-none' : ''}`}>
               {sampleTemplates.map((t, idx) => {
                 return (
                   <button
                     key={idx}
+                    disabled={isLocked}
                     onClick={() => handlePasteSample(t.text)}
                     className="px-3 py-1.5 text-[11px] font-semibold text-neutral-700 dark:text-neutral-300 border border-[var(--border-color)] hover:bg-neutral-50 dark:hover:bg-neutral-800 hover:border-[var(--accent-primary)] transition-all cursor-pointer rounded-full bg-[var(--card-bg)]"
                   >
@@ -192,8 +206,10 @@ export default function StyleCloner({ persona, setPersona, apiKey, isMuted = fal
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Paste your communication logs or sample text here (min 20 chars)..."
                 rows={5}
-                className="w-full p-4.5 brutal-input text-xs bg-[var(--input-bg)] text-[var(--foreground)] border border-[var(--border-color)] rounded-lg focus:border-[var(--accent-primary)] focus:outline-none"
-                disabled={isAnalyzing}
+                className={`w-full p-4.5 brutal-input text-xs bg-[var(--input-bg)] text-[var(--foreground)] border border-[var(--border-color)] rounded-lg focus:border-[var(--accent-primary)] focus:outline-none ${
+                  isLocked ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                disabled={isAnalyzing || isLocked}
               />
               {isAnalyzing && (
                 <div className="absolute inset-0 bg-[var(--background)]/90 flex flex-col p-4 justify-between border border-[var(--border-color)] shadow-md rounded-xl z-30">
@@ -232,8 +248,10 @@ export default function StyleCloner({ persona, setPersona, apiKey, isMuted = fal
 
             <button
               onClick={() => analyzeStyleLocally(inputText)}
-              disabled={isAnalyzing || !inputText.trim()}
-              className="w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary-hover)] transition-all cursor-pointer shadow-sm active:scale-98"
+              disabled={isAnalyzing || !inputText.trim() || isLocked}
+              className={`w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-[var(--accent-primary)] text-white hover:bg-[var(--accent-primary-hover)] transition-all shadow-sm active:scale-98 ${
+                isLocked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+              }`}
             >
               Sequence DNA
             </button>

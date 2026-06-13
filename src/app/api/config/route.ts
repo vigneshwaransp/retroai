@@ -6,7 +6,7 @@ export async function GET() {
     hasOpenaiKey: !!process.env.OPENAI_API_KEY,
     hasHfToken: !!process.env.HF_TOKEN,
     hasGroqKey: !!process.env.GROQ_API_KEY,
-    hasNvidiaKey: !!process.env.NVIDIA_API_KEY || true,
+    hasNvidiaKey: !!process.env.NVIDIA_API_KEY,
     hfModel: process.env.HF_MODEL || 'Qwen/Qwen2.5-72B-Instruct',
     groqModel: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
   });

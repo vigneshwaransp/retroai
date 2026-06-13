@@ -40,11 +40,34 @@ export default function DNAProfileView({ persona }: DNAProfileViewProps) {
     setBasePairs(generated);
   }, [persona]);
 
-  const toneShort = persona.tone.substring(0, 4).toUpperCase();
-  const langShort = persona.language.substring(0, 2).toUpperCase();
-  const lenShort = persona.length.substring(0, 3).toUpperCase();
-  const lvlShort = persona.level.substring(0, 3).toUpperCase();
-  const codecCode = `DNA-${toneShort}-${langShort}-${lenShort}-${lvlShort}`;
+  const getDNALabel = () => {
+    const toneMap: Record<string, string> = {
+      CASU: 'Casual', FORM: 'Formal', TECH: 'Technical', CRE: 'Creative'
+    };
+    const styleMap: Record<string, string> = {
+      TH: 'Thoughtful', WIT: 'Witty', BLT: 'Blunt', EMP: 'Empathetic'
+    };
+    const depthMap: Record<string, string> = {
+      MED: 'Medium depth', DEEP: 'Deep dive', SURF: 'Surface level'
+    };
+    const levelMap: Record<string, string> = {
+      BEG: 'Beginner-friendly', INT: 'Intermediate', EXP: 'Expert'
+    };
+
+    const toneShort = (persona.tone === 'Casual' ? 'CASU' : persona.tone === 'Formal' ? 'FORM' : persona.tone === 'Neutral' ? 'TECH' : 'CRE');
+    const styleShort = (persona.emojiUsage ? 'EMP' : 'TH');
+    const depthShort = (persona.length === 'Short' ? 'SURF' : persona.length === 'Detailed' ? 'DEEP' : 'MED');
+    const levelShort = (persona.level === 'Basic' ? 'BEG' : persona.level === 'Beginner' ? 'INT' : 'EXP');
+
+    const mappedTone = toneMap[toneShort] || 'Casual';
+    const mappedStyle = styleMap[styleShort] || 'Thoughtful';
+    const mappedDepth = depthMap[depthShort] || 'Medium depth';
+    const mappedLevel = levelMap[levelShort] || 'Beginner-friendly';
+
+    return `${mappedTone} · ${mappedStyle} · ${mappedDepth} · ${mappedLevel}`;
+  };
+
+  const codecCode = getDNALabel();
 
   return (
     <div className="w-full p-6 mono-card flex flex-col gap-6 relative select-none">
@@ -161,7 +184,7 @@ export default function DNAProfileView({ persona }: DNAProfileViewProps) {
           <FileText className="w-3.5 h-3.5" /> Codec Matrix Analysis
         </span>
         <p className="text-xs leading-relaxed font-semibold">
-          Your assistant Retero AI is configured to write in a <strong className="text-foreground font-bold">{persona.tone}</strong> tone as a <strong className="text-foreground font-bold">{persona.role}</strong>. It outputs answers in <strong className="text-foreground font-bold">{persona.language}</strong>, targeting a verbosity level of <strong className="text-foreground font-bold">{persona.length}</strong> and a knowledge depth filter calibrated for <strong className="text-foreground font-bold">{persona.level}</strong> learners.
+          Cresent AI runs a modular system engine. Tweak your configuration core node below to query different LLMs in real-time. Your assistant is configured to write in a <strong className="text-foreground font-bold">{persona.tone}</strong> tone as a <strong className="text-foreground font-bold">{persona.role}</strong>. It outputs answers in <strong className="text-foreground font-bold">{persona.language}</strong>, targeting a verbosity level of <strong className="text-foreground font-bold">{persona.length}</strong> and a knowledge depth filter calibrated for <strong className="text-foreground font-bold">{persona.level}</strong> learners.
         </p>
       </div>
 
