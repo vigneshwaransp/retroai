@@ -692,7 +692,7 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
     if (selectedEngine === 'gemma') {
       const activeKey = apiKey && apiKey.trim() !== '' 
         ? apiKey 
-        : (process.env.NVIDIA_API_KEY || "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");
+        : process.env.NVIDIA_API_KEY;
 
       if (!activeKey || activeKey.trim() === '') {
         const simulated = generateLocalSimulatedResponse(prompt, persona, mode, mood);
