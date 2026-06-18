@@ -13,8 +13,8 @@ import {
   Volume2, VolumeX, Maximize, Minimize, AlignCenter, AlignLeft, 
   Expand, Shrink, Sliders, ChevronLeft, Menu, X, Plus, 
   MessageSquare, Settings, Upload, Check, Activity, Database,
-  Trash2, Lock, RefreshCw, FileText, ZoomIn,
-  Home as HomeIcon, LayoutGrid, Puzzle, BookOpen, Heart, Target, ArrowRight
+  Trash2, Lock, RefreshCw, FileText,
+  Home as HomeIcon, LayoutGrid, Puzzle, BookOpen, Heart, Target, ArrowRight, Users, User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -26,6 +26,7 @@ export interface Message {
   reasoning?: string;
   timestamp: Date;
   sources?: { title: string; url: string; snippet?: string }[];
+  judgeReport?: any;
 }
 
 export interface SavedConversation {
@@ -138,7 +139,6 @@ const DNAHelixBg = ({ className = '' }: { className?: string }) => {
 };
 
 export default function Home() {
-  const matrixCanvasRef = React.useRef<HTMLCanvasElement>(null);
 
   // 1. Initial State for User DNA Persona
   const [persona, setPersona] = useState<UserPersona>({
@@ -147,7 +147,7 @@ export default function Home() {
     length: 'Medium',
     level: 'Beginner',
     language: 'English',
-    emojiUsage: true,
+    emojiUsage: false,
     role: 'Student',
   });
 
@@ -157,13 +157,30 @@ export default function Home() {
   const [activeView, setActiveView] = useState<'chat' | 'rag'>('chat');
   const [isMuted, setIsMuted] = useState(false);
   const [bgPatternActive, setBgPatternActive] = useState(true);
-  const [hfModel, setHfModel] = useState('Qwen/Qwen2.5-72B-Instruct');
+  const [hfModel, setHfModel] = useState('ibm-granite/granite-3.0-8b-instruct');
+  const [hfToken, setHfToken] = useState('');
   const [groqModel, setGroqModel] = useState('qwen/qwen3-32b');
-  const [engine, setEngine] = useState<'pollinations' | 'gemini' | 'openai' | 'huggingface' | 'groq' | 'nvidia' | 'gemma'>('groq');
+  const [engine, setEngine] = useState<'pollinations' | 'gemini' | 'openai' | 'huggingface' | 'groq' | 'nvidia' | 'gemma'>('nvidia');
   const [isDnaLocked, setIsDnaLocked] = useState(false);
-  const [bgIntensity, setBgIntensity] = useState<number>(0.25);
+  const [aiJudgeEnabled, setAiJudgeEnabled] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showInterestModal, setShowInterestModal] = useState(false);
+  const [bgIntensity, setBgIntensity] = useState<number>(0.65);
   const [voiceModel, setVoiceModel] = useState<'webspeech' | 'whisper'>('webspeech');
   const [webSearchModel, setWebSearchModel] = useState<'duckduckgo' | 'yahoo'>('duckduckgo');
+
+  // Clone Human mirror states
+  const [cloneMode, setCloneMode] = useState<boolean>(false);
+  const [cloneData, setCloneData] = useState<{
+    name: string;
+    age: string;
+    interests: string;
+    color: string;
+    movie: string;
+    actor: string;
+    actress: string;
+  } | null>(null);
+  const [showCloneModal, setShowCloneModal] = useState<boolean>(false);
 
   const [config, setConfig] = useState({
     hasGeminiKey: false,
@@ -171,7 +188,7 @@ export default function Home() {
     hasHfToken: false,
     hasGroqKey: false,
     hasNvidiaKey: true,
-    hfModel: 'Qwen/Qwen2.5-72B-Instruct',
+    hfModel: 'ibm-granite/granite-3.0-8b-instruct',
     groqModel: 'llama-3.3-70b-versatile',
   });
 
@@ -193,7 +210,6 @@ export default function Home() {
   const [layoutWidth, setLayoutWidth] = useState<'standard' | 'full'>('standard');
   const [isCentered, setIsCentered] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [zoomLevel, setZoomLevel] = useState<number>(100);
 
   // Left Collapsible Sidebar and Right Sliding Drawer states
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -218,88 +234,24 @@ export default function Home() {
   };
 
   const getDynamicBgSvg = (color: string) => {
-    const cleanColor = encodeURIComponent(color);
-    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000">
-  <style>
-    .word {
-      fill: ${cleanColor};
-      opacity: ${bgIntensity};
-      font-family: system-ui, sans-serif;
-      font-weight: 500;
-    }
-    .word-serif {
-      font-family: Georgia, serif;
-    }
-    .word-mono {
-      font-family: monospace;
-    }
-  </style>
-  
-  <text x="50" y="80" font-size="28" class="word word-serif">Hello</text>
-  <text x="80" y="140" font-size="18" class="word">Bonjour</text>
-  <text x="40" y="210" font-size="32" class="word">Hola</text>
-  <text x="120" y="270" font-size="22" class="word word-mono">Ciao</text>
-  <text x="60" y="340" font-size="26" class="word word-serif">வணக்கம்</text>
-  <text x="90" y="410" font-size="16" class="word">Sveiki</text>
-  <text x="30" y="480" font-size="36" class="word word-serif">हैலோ</text>
-  <text x="110" y="540" font-size="20" class="word">Merhaba</text>
-  <text x="50" y="610" font-size="24" class="word">Hej</text>
-  <text x="140" y="670" font-size="18" class="word word-mono">Alo</text>
-  <text x="70" y="740" font-size="30" class="word word-serif">こんにちは</text>
-  <text x="30" y="810" font-size="22" class="word">Guten Tag</text>
-  <text x="120" y="870" font-size="28" class="word word-serif">你好</text>
-  <text x="60" y="930" font-size="16" class="word">Zdravstvuyte</text>
-  
-  <text x="320" y="60" font-size="16" class="word">Slam</text>
-  <text x="250" y="120" font-size="28" class="word word-serif">வணக்கம்</text>
-  <text x="360" y="190" font-size="20" class="word">Olá</text>
-  <text x="280" y="250" font-size="24" class="word word-mono">G'day</text>
-  <text x="330" y="320" font-size="18" class="word">Salut</text>
-  <text x="260" y="390" font-size="32" class="word word-serif">你好</text>
-  <text x="380" y="450" font-size="16" class="word">Ahoj</text>
-  <text x="290" y="520" font-size="26" class="word">Bonjour</text>
-  <text x="350" y="580" font-size="22" class="word word-mono">Hej</text>
-  <text x="270" y="650" font-size="30" class="word word-serif">हैலோ</text>
-  <text x="360" y="710" font-size="16" class="word">Sveiki</text>
-  <text x="300" y="780" font-size="28" class="word">안녕하세요</text>
-  <text x="260" y="850" font-size="20" class="word word-mono">Ciao</text>
-  <text x="340" y="910" font-size="24" class="word word-serif">Hola</text>
-  <text x="290" y="970" font-size="18" class="word">Merhaba</text>
-  
-  <text x="580" y="90" font-size="32" class="word word-serif">Guten Tag</text>
-  <text x="650" y="150" font-size="16" class="word">Zdravstvuyte</text>
-  <text x="560" y="220" font-size="24" class="word">Merhaba</text>
-  <text x="620" y="280" font-size="20" class="word word-mono">Olá</text>
-  <text x="590" y="350" font-size="28" class="word word-serif">안녕하세요</text>
-  <text x="670" y="420" font-size="18" class="word">Salut</text>
-  <text x="550" y="490" font-size="30" class="word">Hello</text>
-  <text x="630" y="550" font-size="16" class="word word-mono">Ahoj</text>
-  <text x="580" y="620" font-size="22" class="word word-serif">こんにちは</text>
-  <text x="660" y="680" font-size="26" class="word">Ciao</text>
-  <text x="560" y="750" font-size="18" class="word">G'day</text>
-  <text x="620" y="810" font-size="34" class="word word-serif">வணக்கம்</text>
-  <text x="570" y="880" font-size="20" class="word">Hej</text>
-  <text x="640" y="940" font-size="24" class="word word-mono">Slam</text>
-  
-  <text x="210" y="170" font-size="22" class="word" transform="rotate(15, 210, 170)">Hello</text>
-  <text x="490" y="110" font-size="18" class="word" transform="rotate(-10, 490, 110)">Bonjour</text>
-  <text x="180" y="450" font-size="24" class="word" transform="rotate(-15, 180, 450)">Hola</text>
-  <text x="480" y="380" font-size="26" class="word" transform="rotate(12, 480, 380)">Ciao</text>
-  <text x="200" y="720" font-size="18" class="word" transform="rotate(8, 200, 720)">Olá</text>
-  <text x="500" y="790" font-size="28" class="word" transform="rotate(-12, 500, 790)">வணக்கம்</text>
-  <text x="190" y="920" font-size="20" class="word" transform="rotate(-8, 190, 920)">Merhaba</text>
-  <text x="470" y="660" font-size="22" class="word" transform="rotate(15, 470, 660)">हैலோ</text>
+    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${color}" stroke-width="0.5" opacity="0.04" />
+    </pattern>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#grid)" />
 </svg>`;
     if (typeof window !== 'undefined') {
       try {
         const bytes = new TextEncoder().encode(svgStr);
         const binString = Array.from(bytes, (byte) => String.fromCharCode(byte)).join("");
-        return `data:image/svg+xml;base64,${window.btoa(binString)}`;
+        return `data:image/svg+xml;charset=utf-8;base64,${window.btoa(binString)}`;
       } catch (e) {
         console.error("Failed to encode background SVG to base64", e);
       }
     }
-    return `data:image/svg+xml;utf8,${encodeURIComponent(svgStr)}`;
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgStr)}`;
   };
 
   useEffect(() => {
@@ -430,6 +382,32 @@ export default function Home() {
     const savedWebSearchModel = localStorage.getItem('cresent_web_search_model') as 'duckduckgo' | 'yahoo' | null;
     if (savedWebSearchModel) setWebSearchModel(savedWebSearchModel);
 
+    const savedCloneMode = localStorage.getItem('cresent_clone_mode') === 'true';
+    setCloneMode(savedCloneMode);
+
+    const savedHfToken = localStorage.getItem('cresent_hf_token') || '';
+    setHfToken(savedHfToken);
+
+    const savedHfModel = localStorage.getItem('cresent_hf_model') || '';
+    if (savedHfModel) setHfModel(savedHfModel);
+
+    const savedCloneData = localStorage.getItem('cresent_clone_data');
+    if (savedCloneData) {
+      try {
+        setCloneData(JSON.parse(savedCloneData));
+      } catch (e) {}
+    }
+
+    // Load saved persona configuration
+    const savedPersona = localStorage.getItem('cresent_persona');
+    if (savedPersona) {
+      try {
+        setPersona(JSON.parse(savedPersona));
+      } catch (e) {
+        console.error('Failed to parse saved persona', e);
+      }
+    }
+
     // 3. Fetch server config
     fetch('/api/config')
       .then(res => res.json())
@@ -451,10 +429,35 @@ export default function Home() {
       }
     }
     setCurrentSessionId(Date.now().toString());
+
+    // 5. Interest selection pop-up setup
+    const interestShown = localStorage.getItem('cresent_interest_shown') === 'true';
+    if (!interestShown) {
+      setShowInterestModal(true);
+    }
   }, []);
+
+  // Save persona to local storage on changes
+  useEffect(() => {
+    localStorage.setItem('cresent_persona', JSON.stringify(persona));
+  }, [persona]);
+
+  // Clone Mode syncer to persona
+  useEffect(() => {
+    localStorage.setItem('cresent_clone_mode', String(cloneMode));
+    if (cloneData) {
+      localStorage.setItem('cresent_clone_data', JSON.stringify(cloneData));
+    }
+    setPersona(prev => ({
+      ...prev,
+      cloneMode,
+      cloneData
+    }));
+  }, [cloneMode, cloneData]);
 
   // Auto-save session to history when messages change
   useEffect(() => {
+    if (isLoading) return; // Skip saving to localStorage while message is streaming!
     const hasUserMessages = messages.some(m => m.sender === 'user');
     if (!hasUserMessages || !currentSessionId) return;
 
@@ -485,7 +488,7 @@ export default function Home() {
       localStorage.setItem('cresent_saved_conversations', JSON.stringify(updated));
       return updated;
     });
-  }, [messages, currentSessionId, persona, mode, mood]);
+  }, [messages, currentSessionId, persona, mode, mood, isLoading]);
 
   const loadConversation = (conv: SavedConversation) => {
     playSynthSound('success', isMuted);
@@ -549,66 +552,14 @@ export default function Home() {
     localStorage.setItem('cresent_accent', accentColor);
   }, [accentColor]);
 
+  useEffect(() => {
+    localStorage.setItem('cresent_dna_locked', String(isDnaLocked));
+  }, [isDnaLocked]);
+
   const activeColorHex = engine === 'gemma' ? '#ec4899' : (theme === 'light' ? accentPalettes[accentColor].light : accentPalettes[accentColor].dark);
   const bgImageValue = isMounted && bgPatternActive ? `url("${getDynamicBgSvg(activeColorHex)}")` : 'none';
 
-  // Matrix digital rain background animation loop
-  useEffect(() => {
-    if (!isMounted || !bgPatternActive) return;
-    const canvas = matrixCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
 
-    let animationFrameId: number;
-    
-    const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    const matrixChars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz日ハミヒーウシナモニアテトヤユヨラリルレロワヰヱヲン";
-    const charArray = matrixChars.split("");
-    const fontSize = 14;
-    const columns = Math.ceil(canvas.width / fontSize);
-
-    const drops: number[] = [];
-    for (let i = 0; i < columns; i++) {
-      drops[i] = Math.random() * -100;
-    }
-
-    const draw = () => {
-      ctx.fillStyle = theme === 'dark' ? 'rgba(0, 0, 0, 0.06)' : 'rgba(252, 252, 252, 0.06)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = activeColorHex;
-      ctx.font = `${fontSize}px monospace`;
-
-      for (let i = 0; i < drops.length; i++) {
-        const char = charArray[Math.floor(Math.random() * charArray.length)];
-        const x = i * fontSize;
-        const y = drops[i] * fontSize;
-
-        ctx.fillText(char, x, y);
-
-        if (y > canvas.height && Math.random() > 0.975) {
-          drops[i] = 0;
-        }
-        drops[i]++;
-      }
-
-      animationFrameId = requestAnimationFrame(draw);
-    };
-
-    draw();
-
-    return () => {
-      window.removeEventListener('resize', resizeCanvas);
-      cancelAnimationFrame(animationFrameId);
-    };
-  }, [isMounted, bgPatternActive, theme, activeColorHex, engine]);
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -634,24 +585,10 @@ export default function Home() {
   return (
     <main 
       className={`min-h-screen w-full flex bg-[var(--background)] text-[var(--foreground)] overflow-hidden font-sans relative z-0 ${engine === 'gemma' ? 'genai-mode' : ''}`}
+      style={{ backgroundImage: bgImageValue, backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
-      {/* Matrix digital rain background */}
-      {isMounted && bgPatternActive && (
-        <canvas
-          ref={matrixCanvasRef}
-          className="absolute inset-0 w-full h-full pointer-events-none z-[-1]"
-          style={{ opacity: bgIntensity }}
-        />
-      )}
       
-      {/* Background vector DNA watermarks */}
-      {isMounted && (
-        <>
-          <DNAHelixBg className="left-4 bottom-10 w-48 h-[600px] rotate-12" />
-          <DNAHelixBg className="right-4 top-20 w-48 h-[600px] -rotate-12" />
-          <DNAHelixBg className="right-12 bottom-10 w-48 h-[500px] rotate-45" />
-        </>
-      )}
+      {/* Flat grid background is handled by CSS body class */}
       
       {/* 1. LEFT COLLAPSIBLE SIDEBAR */}
       <motion.aside
@@ -662,11 +599,11 @@ export default function Home() {
         {/* Brand Header / Top Sidebar spacing */}
         <div className="p-4 flex items-center justify-between border-b border-[var(--border-color)] h-16 flex-shrink-0">
           <div className="flex items-center gap-2.5">
-            <span className="text-xs font-semibold text-neutral-500 uppercase font-mono">Navigation Hub</span>
+            <span className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Navigation Deck</span>
           </div>
           <button 
             onClick={() => setSidebarOpen(false)}
-            className="p-1 rounded hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 text-neutral-500 cursor-pointer"
+            className="p-1 rounded-md border border-[var(--border-color)] bg-[var(--card-bg)] text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer"
             title="Collapse Sidebar"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -674,13 +611,14 @@ export default function Home() {
         </div>
 
         {/* Sidebar Tabs List */}
-        <div className="flex-1 py-4 flex flex-col gap-1 px-3 select-none">
+        <div className="flex-1 py-4 flex flex-col gap-2 px-3 select-none">
           {([
-            { id: 'home', label: 'Home', icon: HomeIcon, active: activeView === 'chat' && drawerOpen === null, onClick: () => { setActiveView('chat'); setDrawerOpen(null); } },
+            { id: 'home', label: 'Home Feed', icon: HomeIcon, active: activeView === 'chat' && drawerOpen === null, onClick: () => { setActiveView('chat'); setDrawerOpen(null); } },
+            { id: 'clone', label: cloneMode ? 'Human Clone (Active)' : 'Mirror Persona', icon: Users, active: cloneMode, onClick: () => { setShowCloneModal(true); } },
             { id: 'conversations', label: 'Conversations', icon: MessageSquare, active: drawerOpen === 'history', onClick: () => { setActiveView('chat'); setDrawerOpen(prev => prev === 'history' ? null : 'history'); } },
-            { id: 'memory', label: 'Memory', icon: Brain, active: drawerOpen === 'dna', onClick: () => { setDrawerOpen(prev => prev === 'dna' ? null : 'dna'); } },
-            { id: 'tools', label: 'Tools', icon: LayoutGrid, active: activeView === 'rag', onClick: () => { setActiveView(prev => prev === 'rag' ? 'chat' : 'rag'); setDrawerOpen(null); } },
-            { id: 'integrations', label: 'Integrations', icon: Puzzle, active: drawerOpen === 'cloner', onClick: () => { setDrawerOpen(prev => prev === 'cloner' ? null : 'cloner'); } },
+            { id: 'memory', label: 'DNA Customizer', icon: Brain, active: drawerOpen === 'dna', onClick: () => { setDrawerOpen(prev => prev === 'dna' ? null : 'dna'); } },
+            { id: 'tools', label: 'RAG Knowledge', icon: LayoutGrid, active: activeView === 'rag', onClick: () => { setActiveView(prev => prev === 'rag' ? 'chat' : 'rag'); setDrawerOpen(null); } },
+            { id: 'integrations', label: 'Style Cloner', icon: Puzzle, active: drawerOpen === 'cloner', onClick: () => { setDrawerOpen(prev => prev === 'cloner' ? null : 'cloner'); } },
             { id: 'settings', label: 'Settings', icon: Settings, active: drawerOpen === 'settings', onClick: () => { setDrawerOpen(prev => prev === 'settings' ? null : 'settings'); } },
           ] as const).map((tab) => {
             const Icon = tab.icon;
@@ -691,13 +629,13 @@ export default function Home() {
                   playSynthSound('click', isMuted);
                   tab.onClick();
                 }}
-                className={`w-full py-3 px-4 rounded-xl text-sm font-semibold transition-all flex items-center gap-3.5 cursor-pointer relative ${
+                className={`w-full py-2 px-3 text-xs font-semibold rounded-lg transition-all flex items-center gap-3 cursor-pointer relative ${
                   tab.active 
-                    ? 'text-amber-500 bg-amber-500/10 font-bold border-l-4 border-amber-500 rounded-l-none' 
-                    : 'text-neutral-500 dark:text-neutral-400 hover:text-amber-500 hover:bg-neutral-200/40 dark:hover:bg-neutral-800/40'
+                    ? 'text-white bg-blue-600' 
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
-                <Icon className={`w-4.5 h-4.5 ${tab.active ? 'text-amber-500' : 'text-neutral-400'}`} />
+                <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
               </button>
             );
@@ -706,18 +644,16 @@ export default function Home() {
 
         {/* Clock & System Online widgets in sidebar */}
         <div className="flex flex-col gap-3.5 border-t border-[var(--border-color)] pt-4 bg-[var(--background)] flex-shrink-0 pb-4">
-          {/* Digital Clock Widget */}
-          <div className="mx-3.5 p-4 border border-amber-500/10 bg-neutral-950/40 rounded-2xl flex flex-col gap-0.5 select-none font-mono">
-            <span className="text-2xl font-bold text-amber-500 tracking-tight">{clockTime || '06:53 AM'}</span>
-            <span className="text-[10px] text-neutral-400 uppercase tracking-wider">{clockDate || 'Sat, 13 Jun, 2026'}</span>
-          </div>
+
 
           {/* System Online Widget */}
-          <div className="mx-3.5 p-4 border border-amber-500/10 bg-neutral-950/40 rounded-2xl flex items-start gap-3 select-none">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1 animate-pulse flex-shrink-0" />
-            <div className="flex flex-col gap-0.5">
-              <span className="text-xs font-semibold text-neutral-200 leading-none">System Online</span>
-              <span className="text-[10px] text-neutral-400">All systems operational</span>
+          <div className="mx-3.5 select-none">
+            <div className="p-3 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] flex items-start gap-3">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1 animate-pulse flex-shrink-0" />
+              <div className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                <span className="leading-none text-slate-800 dark:text-slate-200">System Connected</span>
+                <span>Active workspace secure</span>
+              </div>
             </div>
           </div>
         </div>
@@ -739,7 +675,7 @@ export default function Home() {
       <section className="flex-1 h-screen flex flex-col relative overflow-hidden transition-all duration-300">
         
         {/* Top Header Deck (only holds page actions / workspace layout controls) */}
-        <header className="w-full h-16 border-b border-[var(--border-color)] px-6 flex items-center justify-between flex-shrink-0 relative bg-[var(--background)] z-20">
+        <header className="w-full h-16 border-b border-[var(--border-color)] px-6 flex items-center justify-between flex-shrink-0 relative bg-[var(--sidebar-bg)] z-20">
           <div className="flex items-center gap-3">
             {/* Sidebar toggle menu button */}
             <button
@@ -747,7 +683,7 @@ export default function Home() {
                 playSynthSound('click', isMuted);
                 setSidebarOpen(prev => !prev);
               }}
-              className="p-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] text-neutral-400 hover:text-amber-500 hover:border-amber-500/50 cursor-pointer transition-all"
+              className="p-2 border border-[var(--border-color)] bg-[var(--card-bg)] text-slate-600 dark:text-slate-200 hover:text-blue-600 rounded-lg cursor-pointer"
               title="Toggle Sidebar"
             >
               <Menu className="w-4.5 h-4.5" />
@@ -755,60 +691,38 @@ export default function Home() {
 
             {/* Logo and branding */}
             <div className="flex items-center gap-2 pl-2">
-              <div className="w-9 h-9 rounded-full border border-amber-500/20 flex items-center justify-center bg-neutral-950/40 relative overflow-hidden">
-                <Logo className="w-6 h-6 relative z-10" />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-600 text-white relative overflow-hidden">
+                <Logo className="w-5.5 h-5.5 relative z-10 filter invert brightness-200" />
               </div>
-              <span className="text-sm font-cyberpunk uppercase tracking-widest flex select-none font-bold">
-                <span className="text-amber-500 font-sans font-black scale-110">C</span>
-                <span className="text-white font-sans">RESCENT</span>
+              <span className="text-sm font-bold tracking-tight select-none text-slate-800 dark:text-slate-100 px-1 py-0.5">
+                CresentX
               </span>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* GenAI Mode Toggle Switch */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-lg border border-[var(--border-color)] bg-[var(--card-bg)] shadow-sm text-xs font-semibold select-none h-[34px]">
-              <span className="font-mono text-[9px] uppercase font-bold text-neutral-500">GenAI Mode</span>
-              <button
-                type="button"
-                onClick={() => {
-                  playSynthSound('click', isMuted);
-                  setEngine(prev => prev === 'gemma' ? 'nvidia' : 'gemma');
-                }}
-                className={`w-8 h-4.5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none cursor-pointer relative ${
-                  engine === 'gemma' ? 'bg-pink-500' : 'bg-neutral-300 dark:bg-neutral-700'
-                }`}
-                title={engine === 'gemma' ? "Disable GenAI Mode" : "Enable GenAI Mode (Llama 3.3)"}
-              >
-                <div
-                  className={`bg-white w-3.5 h-3.5 rounded-full shadow-sm transform transition-transform duration-200 absolute top-0.5 ${
-                    engine === 'gemma' ? 'translate-x-3.5' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
 
             {/* DNA outline button */}
             <button
               onClick={() => toggleDrawer('dna')}
-              className={`py-1.5 px-3 rounded-lg border shadow-sm hover:border-amber-500 hover:text-amber-500 cursor-pointer flex items-center gap-1.5 transition-all text-xs font-semibold ${
+              className={`py-1.5 px-3 border rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1.5 transition-all ${
                 drawerOpen === 'dna' 
-                  ? 'border-amber-500 text-amber-500 bg-amber-500/10' 
-                  : 'border-neutral-800 bg-neutral-950/40 text-neutral-400'
+                  ? 'bg-blue-600 border-blue-600 text-white' 
+                  : 'border-[var(--border-color)] bg-[var(--card-bg)] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
-              title="DNA Preferences Calibrator"
+              title="DNA Preferences"
             >
-              <Activity className="w-4 h-4 animate-pulse" />
+              <Activity className="w-4 h-4" />
               <span>DNA</span>
             </button>
 
             {/* Docs Button */}
             <button
               onClick={() => toggleDrawer('docs')}
-              className={`py-1.5 px-3 rounded-lg border shadow-sm hover:border-amber-500 hover:text-amber-500 cursor-pointer flex items-center gap-1.5 transition-all text-xs font-semibold ${
+              className={`py-1.5 px-3 border rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1.5 transition-all ${
                 drawerOpen === 'docs' 
-                  ? 'border-amber-500 text-amber-500 bg-amber-500/10' 
-                  : 'border-neutral-800 bg-neutral-950/40 text-neutral-400'
+                  ? 'bg-blue-600 border-blue-600 text-white' 
+                  : 'border-[var(--border-color)] bg-[var(--card-bg)] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
               title="Documentation & Guide"
             >
@@ -819,48 +733,13 @@ export default function Home() {
             {/* Fullscreen Button */}
             <button
               onClick={toggleFullscreen}
-              className="py-1.5 px-3 rounded-lg border border-neutral-800 bg-neutral-950/40 text-neutral-400 hover:border-amber-500 hover:text-amber-500 flex items-center gap-1.5 transition-all text-xs font-semibold cursor-pointer"
+              className="py-1.5 px-3 border border-[var(--border-color)] rounded-lg bg-[var(--card-bg)] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium cursor-pointer"
               title="Toggle Fullscreen Mode"
             >
               {isFullscreen ? <Minimize className="w-4.5 h-4.5" /> : <Maximize className="w-4.5 h-4.5" />}
-              <span>{isFullscreen ? "Exit Full" : "Fullscreen"}</span>
             </button>
 
-            {/* Background Toggle Button */}
-            <button
-              onClick={toggleBgPattern}
-              className={`py-1.5 px-3 rounded-lg border shadow-sm hover:border-amber-500 hover:text-amber-500 cursor-pointer flex items-center gap-1.5 transition-all text-xs font-semibold ${
-                bgPatternActive 
-                  ? 'border-amber-500 text-amber-500 bg-amber-500/10' 
-                  : 'border-neutral-800 bg-neutral-950/40 text-neutral-400'
-              }`}
-              title="Toggle Matrix Background Animation"
-            >
-              <LayoutGrid className="w-4 h-4" />
-              <span>{bgPatternActive ? "BG Off" : "BG On"}</span>
-            </button>
 
-            {/* Zoom Button */}
-            <button
-              onClick={() => {
-                playSynthSound('click', isMuted);
-                setZoomLevel(prev => prev === 100 ? 115 : prev === 115 ? 130 : 100);
-              }}
-              className="py-1.5 px-3 rounded-lg border border-neutral-800 bg-neutral-950/40 text-neutral-400 hover:border-amber-500 hover:text-amber-500 flex items-center gap-1.5 transition-all text-xs font-semibold cursor-pointer"
-              title="Adjust Workspace Zoom Scale"
-            >
-              <ZoomIn className="w-4 h-4" />
-              <span>Zoom {zoomLevel}%</span>
-            </button>
-
-            {/* User Profile Avatar */}
-            <button
-              onClick={() => toggleDrawer('dna')}
-              className="w-9 h-9 rounded-full border border-neutral-800 hover:border-amber-500 hover:text-amber-500 bg-neutral-950/40 flex items-center justify-center text-xs font-bold text-neutral-300 font-mono transition-all cursor-pointer"
-              title="User Persona Profile"
-            >
-              VK
-            </button>
           </div>
         </header>
 
@@ -874,7 +753,7 @@ export default function Home() {
                   {/* Traffic Light Dots */}
                   <div className="flex items-center gap-1.5 w-24">
                     <span className="w-3 h-3 rounded-full bg-red-400 dark:bg-red-500/40" />
-                    <span className="w-3 h-3 rounded-full bg-yellow-400 dark:bg-yellow-500/40" />
+                    <span className="w-3 h-3 rounded-full bg-red-400 dark:bg-red-500/40" />
                     <span className="w-3 h-3 rounded-full bg-green-400 dark:bg-green-500/40" />
                   </div>
 
@@ -913,19 +792,16 @@ export default function Home() {
           ) : (
             <div className="flex-1 flex overflow-hidden w-full relative z-10">
               {/* Center Chat Viewport */}
-              <div 
-                className={`flex-1 overflow-hidden flex flex-col justify-between py-6 px-4 md:px-8 transition-all duration-300 ${
-                  layoutWidth === 'standard' ? 'max-w-4xl mx-auto' : 'max-w-none'
-                }`}
-                style={{ zoom: zoomLevel / 100 } as React.CSSProperties}
-              >
+              <div className={`flex-1 overflow-hidden flex flex-col justify-between py-6 px-4 md:px-8 transition-all duration-300 ${
+                layoutWidth === 'standard' ? 'max-w-4xl mx-auto' : 'max-w-none'
+              }`}>
                 <div className="flex-1 flex flex-col overflow-hidden relative">
                   <ChatArea 
                     persona={persona} 
                     setPersona={setPersona}
                     apiKey="" 
                     openaiApiKey="" 
-                    hfToken="" 
+                    hfToken={hfToken} 
                     hfModel={hfModel} 
                     groqApiKey=""
                     groqModel={groqModel}
@@ -945,14 +821,16 @@ export default function Home() {
                     onOpenSettings={() => toggleDrawer('settings')}
                     onTriggerAgentMode={() => setActiveView('rag')}
                     webSearchModel={webSearchModel}
+                    aiJudgeEnabled={aiJudgeEnabled}
+                    isDnaLocked={isDnaLocked}
+                    setIsDnaLocked={setIsDnaLocked}
+                    isLoading={isLoading}
+                    setIsLoading={setIsLoading}
+                    cloneMode={cloneMode}
+                    cloneData={cloneData}
                   />
                 </div>
 
-                {/* Minimal info footer in center workspace */}
-                <div className="w-full flex flex-col items-center gap-1.5 pt-4 border-t border-neutral-800/60 mt-3 select-none text-center">
-                  <span className="text-[11px] text-neutral-500 italic">“ Built with empathy. Engineered with intelligence. ”</span>
-                  <span className="text-[9px] font-mono tracking-widest text-neutral-500 uppercase">SENTRY CORE ENGINE PIPELINE • CALIBRATED PERSONALIZATION LAYER</span>
-                </div>
               </div>
             </div>
           )}
@@ -975,20 +853,20 @@ export default function Home() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-              className="w-full sm:w-[360px] md:w-[390px] h-screen bg-[var(--card-bg)] border-l border-[var(--border-color)] fixed right-0 top-0 z-40 shadow-2xl flex flex-col overflow-hidden"
+              className="w-full sm:w-[360px] md:w-[390px] h-screen bg-black border-l border-[#00ff00] fixed right-0 top-0 z-40 shadow-[0_0_15px_rgba(0,255,0,0.15)] flex flex-col overflow-hidden"
             >
               {/* Drawer Header */}
-              <div className="p-4 border-b border-[var(--border-color)] flex items-center justify-between sticky top-0 bg-[var(--card-bg)] z-10 h-16">
-                <h2 className="text-xs font-bold tracking-tight uppercase font-mono flex items-center gap-2 text-neutral-700 dark:text-neutral-200">
-                  {drawerOpen === 'dna' && '🧬 DNA Calibrator'}
-                  {drawerOpen === 'cloner' && '📋 Style Scanner'}
-                  {drawerOpen === 'settings' && '⚡ Core Engines'}
-                  {drawerOpen === 'rag' && '🗄️ RAG Agent'}
-                  {drawerOpen === 'docs' && '📖 Guide & Features'}
+              <div className="p-4 border-b border-[#00ff00] flex items-center justify-between sticky top-0 bg-black z-10 h-16">
+                <h2 className="text-xs font-black tracking-tight uppercase font-mono flex items-center gap-2 text-[#00ff00]">
+                  {drawerOpen === 'dna' && '🧬 [ DNA_CALIBRATION ]'}
+                  {drawerOpen === 'cloner' && '📋 [ STYLE_SCANNER ]'}
+                  {drawerOpen === 'settings' && '⚡ [ CORE_ENGINES ]'}
+                  {drawerOpen === 'rag' && '🗄️ [ RAG_AGENT ]'}
+                  {drawerOpen === 'docs' && '📖 [ GUIDE_FILES ]'}
                 </h2>
                 <button 
                   onClick={() => setDrawerOpen(null)}
-                  className="p-1 rounded hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50 text-neutral-500 cursor-pointer"
+                  className="p-1 border border-[#00ff00] bg-black text-[#00ff00] hover:bg-[#00ff00] hover:text-black cursor-pointer font-mono font-bold"
                   title="Close Drawer"
                 >
                   <X className="w-4.5 h-4.5" />
@@ -1011,11 +889,6 @@ export default function Home() {
                         localStorage.setItem('cresent_dna_locked', String(locked));
                       }}
                     />
-                    
-                    <div className="border-t border-[var(--border-color)] pt-5 flex flex-col gap-3.5">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-neutral-500 font-mono">🧬 DNA Sequence Helix Matrix</h3>
-                      <DNAProfileView persona={persona} />
-                    </div>
 
                     {/* Side Interactive Vibe Comparison Widget */}
                     <div className="border-t border-[var(--border-color)] pt-5 flex flex-col gap-3.5">
@@ -1031,7 +904,7 @@ export default function Home() {
                             <p className="text-neutral-500">Next.js is a React framework created by Vercel. It enables features like Server-Side Rendering (SSR)...</p>
                           </div>
                           <div className="p-2.5 bg-[var(--accent-primary)]/5 border border-[var(--accent-primary)]/15 rounded-lg">
-                            <span className="font-mono text-[8px] uppercase font-bold text-[var(--accent-primary)] block mb-0.5">Sentry Adaptive Response</span>
+                            <span className="font-mono text-[8px] uppercase font-bold text-[var(--accent-primary)] block mb-0.5">CresentX Adaptive Response</span>
                             <p className="text-neutral-700 dark:text-neutral-300 font-semibold">
                               {persona.tone === 'Casual' 
                                 ? "Next.js is like a supercharged React toolbox, bro! SSR pre-builds pages on the server, making your web pages load at lightspeed! 🚀🔥"
@@ -1065,8 +938,34 @@ export default function Home() {
                   <div className="flex flex-col gap-6 font-sans">
                     <div className="pb-1">
                       <p className="text-xs text-neutral-400 dark:text-neutral-500 leading-relaxed">
-                        Cresent AI runs a modular system engine. Tweak your configuration core node below to query different LLMs in real-time.
+                        CresentX runs a modular system engine. Tweak your configuration core node below to query different LLMs in real-time.
                       </p>
+                    </div>
+
+                    <div className="flex flex-col gap-3 border-b border-[var(--border-color)] pb-5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 font-mono">Comparative Analytics:</span>
+                      <div className="flex items-center justify-between p-3.5 border border-[var(--border-color)] bg-[var(--background)] rounded-xl">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-xs font-semibold text-neutral-800 dark:text-neutral-200">🟢 AI Judge (Grade Responses)</span>
+                          <span className="text-[10px] text-neutral-400 leading-normal">Evaluate DNA alignment using active Groq/NVIDIA models</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            playSynthSound('click', isMuted);
+                            setAiJudgeEnabled(!aiJudgeEnabled);
+                          }}
+                          className={`w-9 h-5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none cursor-pointer relative ${
+                            aiJudgeEnabled ? 'bg-red-500' : 'bg-neutral-300 dark:bg-neutral-700'
+                          }`}
+                        >
+                          <div
+                            className={`bg-white w-4 h-4 rounded-full shadow-sm transform transition-transform duration-200 absolute top-0.5 ${
+                              aiJudgeEnabled ? 'translate-x-4' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </div>
                     </div>
 
                     <div className="flex flex-col gap-3">
@@ -1074,23 +973,14 @@ export default function Home() {
                       
                       <div className="flex flex-col gap-2">
                         {([
-                          { id: 'nvidia', label: '🟢 NVIDIA Kimi-k2.6 (Reasoning)' },
-                          { id: 'gemma', label: '🔥 Google Gemma (GenAI Mode)' },
-                          { id: 'pollinations', label: '🚀 Pollinations Core (Free)' },
-                          { id: 'openai', label: '🧠 OpenAI GPT Core' },
-                          { id: 'gemini', label: '✨ Google Gemini Core' },
-                          { id: 'huggingface', label: '🤗 Hugging Face Server' },
-                          { id: 'groq', label: '⚡ Groq LPU Server' }
+                          { id: 'nvidia', label: '🟢 NVIDIA Kimi-k2.6' },
+                          { id: 'pollinations', label: '🚀 Pollinations Core' },
+                          { id: 'openai', label: '🧠 OpenAI GPT' },
+                          { id: 'gemini', label: '✨ Google Gemini' },
+                          { id: 'huggingface', label: '🤗 Hugging Face' },
+                          { id: 'groq', label: '⚡ Groq LPU' }
                         ] as const).map(item => {
                           const isSelected = engine === item.id;
-                          let isConfigured = true;
-                          if (item.id === 'openai') isConfigured = config.hasOpenaiKey;
-                          if (item.id === 'gemini') isConfigured = config.hasGeminiKey;
-                          if (item.id === 'huggingface') isConfigured = config.hasHfToken;
-                          if (item.id === 'groq') isConfigured = config.hasGroqKey;
-                          if (item.id === 'nvidia') isConfigured = config.hasNvidiaKey;
-                          if (item.id === 'gemma') isConfigured = config.hasNvidiaKey;
-                          
                           return (
                             <button
                               key={item.id}
@@ -1105,13 +995,42 @@ export default function Home() {
                               }`}
                             >
                               <span>{item.label}</span>
-                              <span className={`w-2 h-2 rounded-full ${
-                                item.id === 'pollinations' ? 'bg-emerald-500 animate-pulse' : isConfigured ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-300'
-                              }`} />
+                              <span className={`w-2 h-2 rounded-full ${isSelected ? 'bg-emerald-500 animate-pulse' : 'bg-neutral-350'}`} />
                             </button>
                           );
                         })}
                       </div>
+
+                      {engine === 'huggingface' && (
+                        <div className="mt-3 flex flex-col gap-3 p-3.5 border border-red-500/10 bg-neutral-950/40 rounded-xl animate-[fadeIn_0.2s_ease]">
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-neutral-400 font-mono">Hugging Face Model ID</label>
+                            <input
+                              type="text"
+                              value={hfModel}
+                              onChange={(e) => {
+                                setHfModel(e.target.value);
+                                localStorage.setItem('cresent_hf_model', e.target.value);
+                              }}
+                              className="w-full px-3 py-2 text-xs font-semibold brutal-input rounded-lg border border-neutral-800 bg-neutral-950 text-white focus:border-red-500 focus:outline-none"
+                              placeholder="e.g. ibm-granite/granite-3.0-8b-instruct"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-1.5">
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-neutral-400 font-mono">HF API Token (Optional)</label>
+                            <input
+                              type="password"
+                              value={hfToken}
+                              onChange={(e) => {
+                                setHfToken(e.target.value);
+                                localStorage.setItem('cresent_hf_token', e.target.value);
+                              }}
+                              className="w-full px-3 py-2 text-xs font-semibold brutal-input rounded-lg border border-neutral-800 bg-neutral-950 text-white focus:border-red-500 focus:outline-none"
+                              placeholder="Starts with hf_... (falls back to server token)"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
 
@@ -1150,44 +1069,31 @@ export default function Home() {
                       
                       <div className="flex flex-col gap-3 text-xs">
                         {/* NVIDIA Core */}
-                        <div className="p-3 border border-[var(--border-color)] bg-[var(--background)] rounded-xl flex flex-col gap-1">
-                          <span className="font-semibold text-neutral-800 dark:text-neutral-200">NVIDIA Kimi Core</span>
-                          <span className="text-[10px] text-neutral-400 leading-normal">Running moonshotai/kimi-k2.6 over NVIDIA AI integrations. Securely configured via client authorization token.</span>
+                        <div className="p-3 border-3 border-black bg-[var(--background)] shadow-[2px_2px_0px_rgba(0,0,0,1)] flex flex-col gap-1">
+                          <span className="font-bold text-neutral-800 dark:text-neutral-200">NVIDIA Kimi Core</span>
+                          <span className="text-[10px] text-neutral-500 leading-normal">Running moonshotai/kimi-k2.6 over NVIDIA AI integrations. Securely configured via client authorization token.</span>
                           <span className="text-[9px] text-[#00E65A] font-bold mt-1 font-mono">ACTIVE (PROD ENGINE)</span>
                         </div>
 
-                        {/* Google Gemma */}
-                        <div className="p-3 border border-[var(--border-color)] bg-[var(--background)] rounded-xl flex flex-col gap-1">
-                          <span className="font-semibold text-neutral-800 dark:text-neutral-200">Google Gemma Core</span>
-                          <span className="text-[10px] text-neutral-400 leading-normal">diffusiongemma-26b-a4b-it running in GenAI Mode. Securely configured via client authorization token.</span>
-                          <span className={`text-[9px] font-bold mt-1 font-mono ${config.hasNvidiaKey ? 'text-[#00E65A]' : 'text-neutral-400'}`}>
-                            {config.hasNvidiaKey ? 'ACTIVE (PROD ENGINE)' : 'OFFLINE'}
-                          </span>
-                        </div>
-
                         {/* Pollinations */}
-                        <div className="p-3 border border-[var(--border-color)] bg-[var(--background)] rounded-xl flex flex-col gap-1">
-                          <span className="font-semibold text-neutral-800 dark:text-neutral-200">Pollinations Core</span>
-                          <span className="text-[10px] text-neutral-400 leading-normal">Keyless completion server. Runs GPT-4o-mini logic.</span>
+                        <div className="p-3 border-3 border-black bg-[var(--background)] shadow-[2px_2px_0px_rgba(0,0,0,1)] flex flex-col gap-1">
+                          <span className="font-bold text-neutral-800 dark:text-neutral-200">Pollinations Core</span>
+                          <span className="text-[10px] text-neutral-500 leading-normal">Keyless completion server. Runs GPT-4o-mini logic.</span>
                           <span className="text-[9px] text-emerald-500 font-bold mt-1 font-mono">ACTIVE (FREE)</span>
                         </div>
 
                         {/* Groq */}
-                        <div className="p-3 border border-[var(--border-color)] bg-[var(--background)] rounded-xl flex flex-col gap-1">
-                          <span className="font-semibold text-neutral-800 dark:text-neutral-200">Groq Core</span>
-                          <span className="text-[10px] text-neutral-400 leading-normal">Configured via GROQ_API_KEY in environment variables. Model: {groqModel}</span>
-                          <span className={`text-[9px] font-bold mt-1 font-mono ${config.hasGroqKey ? 'text-emerald-500' : 'text-neutral-400'}`}>
-                            {config.hasGroqKey ? 'ACTIVE (SECURE)' : 'OFFLINE'}
-                          </span>
+                        <div className="p-3 border-3 border-black bg-[var(--background)] shadow-[2px_2px_0px_rgba(0,0,0,1)] flex flex-col gap-1">
+                          <span className="font-bold text-neutral-800 dark:text-neutral-200">Groq Core</span>
+                          <span className="text-[10px] text-neutral-500 leading-normal">Optimized low-latency reasoning node for CresentX DNA engine processing.</span>
+                          <span className="text-[9px] text-emerald-500 font-bold mt-1 font-mono">ACTIVE (SECURE)</span>
                         </div>
 
                         {/* Gemini */}
-                        <div className="p-3 border border-[var(--border-color)] bg-[var(--background)] rounded-xl flex flex-col gap-1">
-                          <span className="font-semibold text-neutral-800 dark:text-neutral-200">Gemini Core</span>
-                          <span className="text-[10px] text-neutral-400 leading-normal">Configured via GEMINI_API_KEY. Model: gemini-1.5-flash</span>
-                          <span className={`text-[9px] font-bold mt-1 font-mono ${config.hasGeminiKey ? 'text-emerald-500' : 'text-neutral-400'}`}>
-                            {config.hasGeminiKey ? 'ACTIVE (SECURE)' : 'OFFLINE'}
-                          </span>
+                        <div className="p-3 border-3 border-black bg-[var(--background)] shadow-[2px_2px_0px_rgba(0,0,0,1)] flex flex-col gap-1">
+                          <span className="font-bold text-neutral-800 dark:text-neutral-200">Gemini Core</span>
+                          <span className="text-[10px] text-neutral-500 leading-normal">Multimodal reasoning core supporting Tamil dialects and RAG memory layers.</span>
+                          <span className="text-[9px] text-emerald-500 font-bold mt-1 font-mono">ACTIVE (SECURE)</span>
                         </div>
                       </div>
                     </div>
@@ -1218,7 +1124,7 @@ export default function Home() {
                           <div>
                             <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100 font-serif mb-1">Overview</h3>
                             <p className="text-neutral-500 leading-relaxed">
-                              Cresent AI is a highly adaptive, modular AI assistant that analyzes and aligns its communication voice to match the user's specific writing DNA profile.
+                              CresentX is a highly adaptive, modular AI assistant that analyzes and aligns its communication voice to match the user's specific writing DNA profile.
                             </p>
                           </div>
 
@@ -1244,7 +1150,7 @@ export default function Home() {
                           </div>
 
                           <div className="flex flex-col gap-2">
-                            <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100 font-serif border-b border-[var(--border-color)]/30 pb-0.5">Steps to use Cresent AI</h3>
+                            <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100 font-serif border-b border-[var(--border-color)]/30 pb-0.5">Steps to use CresentX</h3>
                             <ol className="list-decimal pl-4 flex flex-col gap-1.5 text-neutral-500 leading-relaxed">
                               <li>Calibrate your preferred communication parameters using the **Persona DNA** panel.</li>
                               <li>Use the **Style Scanner** to analyze and clone your custom writing style.</li>
@@ -1330,7 +1236,7 @@ export default function Home() {
                               key={conv.id}
                               className={`w-full rounded-xl border p-3.5 transition-all flex items-center justify-between group cursor-pointer ${
                                 isCurrent
-                                  ? 'border-amber-500/50 bg-amber-500/5 text-amber-500 font-bold'
+                                  ? 'border-red-500/50 bg-red-500/5 text-red-500 font-bold'
                                   : 'border-neutral-800 bg-neutral-900/40 text-neutral-300 hover:border-neutral-700'
                               }`}
                             >
@@ -1367,6 +1273,359 @@ export default function Home() {
               </div>
             </motion.aside>
           </>
+        )}
+      </AnimatePresence>
+      {/* Interest Selector Modal Overlay */}
+      <AnimatePresence>
+        {showInterestModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 30 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 180 }}
+              className="bg-[#0e0e0e]/95 border border-neutral-800 rounded-2xl max-w-2xl w-full p-6 shadow-[0_0_50px_rgba(239,68,68,0.15)] relative overflow-hidden flex flex-col gap-6"
+            >
+              {/* Soft amber top glow bar */}
+              <div className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-red-500/20 via-red-500 to-red-500/20" />
+              
+              <div className="absolute top-4 right-4 z-10">
+                <button 
+                  onClick={() => {
+                    playSynthSound('click', isMuted);
+                    setShowInterestModal(false);
+                    localStorage.setItem('cresent_interest_shown', 'true');
+                  }}
+                  className="text-neutral-400 hover:text-white hover:bg-neutral-800/50 p-1.5 rounded-lg transition-all cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-1.5 text-left">
+                <div className="flex items-center gap-2 text-red-500">
+                  <Brain className="w-5 h-5 animate-pulse" />
+                  <span className="text-[10px] uppercase font-bold tracking-widest font-mono">Calibrate Core Node</span>
+                </div>
+                <h2 className="text-xl font-bold text-neutral-100 font-serif">Configure Your Experience Vibe</h2>
+                <p className="text-xs text-neutral-400 leading-relaxed max-w-xl">
+                  CresentX automatically shifts its tone, language, depth, and personality to align with you. Pick one of the calibrated interest profiles below to set up your profile instantly.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Profile 1: Technical Deep Dives */}
+                <button
+                  onClick={() => {
+                    setPersona({
+                      name: 'User',
+                      tone: 'Neutral',
+                      length: 'Detailed',
+                      level: 'Expert',
+                      language: 'English',
+                      emojiUsage: false,
+                      role: 'Tech Expert'
+                    });
+                    setShowInterestModal(false);
+                    localStorage.setItem('cresent_interest_shown', 'true');
+                    playSynthSound('success', isMuted);
+                  }}
+                  className="p-4 bg-neutral-900/60 border border-neutral-800 hover:border-red-500/50 hover:bg-red-500/[0.02] rounded-xl text-left transition-all group cursor-pointer flex flex-col gap-2 shadow-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-red-500/10 rounded-lg text-red-500 group-hover:scale-105 transition-transform">
+                      <Cpu className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-bold text-white group-hover:text-red-400 transition-colors">Technical Deep Dives</span>
+                  </div>
+                  <p className="text-[10px] text-neutral-400 leading-relaxed flex-1">
+                    Exhaustive details, deep architectural concepts, and optimized code snippets. Zero filler, no emojis.
+                  </p>
+                  <div className="flex flex-wrap gap-1 pt-1.5 border-t border-neutral-800/40">
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300">Technical</span>
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300">Expert</span>
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300">No Emojis</span>
+                  </div>
+                </button>
+
+                {/* Profile 2: Casual Dev Friend */}
+                <button
+                  onClick={() => {
+                    setPersona({
+                      name: 'User',
+                      tone: 'Casual',
+                      length: 'Medium',
+                      level: 'Beginner',
+                      language: 'English',
+                      emojiUsage: true,
+                      role: 'Student'
+                    });
+                    setShowInterestModal(false);
+                    localStorage.setItem('cresent_interest_shown', 'true');
+                    playSynthSound('success', isMuted);
+                  }}
+                  className="p-4 bg-neutral-900/60 border border-neutral-800 hover:border-red-500/50 hover:bg-red-500/[0.02] rounded-xl text-left transition-all group cursor-pointer flex flex-col gap-2 shadow-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-red-500/10 rounded-lg text-red-500 group-hover:scale-105 transition-transform">
+                      <Heart className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-bold text-white group-hover:text-red-400 transition-colors">Casual Dev Friend</span>
+                  </div>
+                  <p className="text-[10px] text-neutral-400 leading-relaxed flex-1">
+                    An informal, friendly conversation vibe that explains complex software terms like a supportive coding peer.
+                  </p>
+                  <div className="flex flex-wrap gap-1 pt-1.5 border-t border-neutral-800/40">
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300">Casual</span>
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300">Beginner</span>
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300">Emojis</span>
+                  </div>
+                </button>
+
+                {/* Profile 3: Hype Coding Buddy */}
+                <button
+                  onClick={() => {
+                    setPersona({
+                      name: 'User',
+                      tone: 'Hype',
+                      length: 'Medium',
+                      level: 'Beginner',
+                      language: 'English',
+                      emojiUsage: true,
+                      role: 'Tech Expert'
+                    });
+                    setShowInterestModal(false);
+                    localStorage.setItem('cresent_interest_shown', 'true');
+                    playSynthSound('success', isMuted);
+                  }}
+                  className="p-4 bg-neutral-900/60 border border-neutral-800 hover:border-red-500/50 hover:bg-red-500/[0.02] rounded-xl text-left transition-all group cursor-pointer flex flex-col gap-2 shadow-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-red-500/10 rounded-lg text-red-500 group-hover:scale-105 transition-transform">
+                      <Target className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-bold text-white group-hover:text-red-400 transition-colors">Hype Coding Buddy</span>
+                  </div>
+                  <p className="text-[10px] text-neutral-400 leading-relaxed flex-1">
+                    Super high-energy motivational feedback and energetic validation to keep you pumped up while engineering.
+                  </p>
+                  <div className="flex flex-wrap gap-1 pt-1.5 border-t border-neutral-800/40">
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300">Hype</span>
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300">Active Vibe</span>
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300">Creative</span>
+                  </div>
+                </button>
+
+                {/* Profile 4: Tamil Bilingual Learning */}
+                <button
+                  onClick={() => {
+                    setPersona({
+                      name: 'User',
+                      tone: 'Casual',
+                      length: 'Medium',
+                      level: 'Beginner',
+                      language: 'Tamil',
+                      emojiUsage: false,
+                      role: 'Student'
+                    });
+                    setShowInterestModal(false);
+                    localStorage.setItem('cresent_interest_shown', 'true');
+                    playSynthSound('success', isMuted);
+                  }}
+                  className="p-4 bg-neutral-900/60 border border-neutral-800 hover:border-red-500/50 hover:bg-red-500/[0.02] rounded-xl text-left transition-all group cursor-pointer flex flex-col gap-2 shadow-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-red-500/10 rounded-lg text-red-500 group-hover:scale-105 transition-transform">
+                      <BookOpen className="w-4 h-4" />
+                    </div>
+                    <span className="text-xs font-bold text-white group-hover:text-red-400 transition-colors">Tamil Bilingual Vibe</span>
+                  </div>
+                  <p className="text-[10px] text-neutral-400 leading-relaxed flex-1">
+                    Get computer science concepts explained in clean, friendly Tamil / Thanglish dialect with local expressions.
+                  </p>
+                  <div className="flex flex-wrap gap-1 pt-1.5 border-t border-neutral-800/40">
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300">Tamil</span>
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300">Bilingual</span>
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300">Friendly</span>
+                  </div>
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between border-t border-neutral-800/50 pt-4 mt-2">
+                <button
+                  onClick={() => {
+                    playSynthSound('click', isMuted);
+                    setShowInterestModal(false);
+                    localStorage.setItem('cresent_interest_shown', 'true');
+                    toggleDrawer('dna');
+                  }}
+                  className="text-xs text-neutral-400 hover:text-white underline cursor-pointer transition-colors"
+                >
+                  Skip and configure manually
+                </button>
+                <div className="text-[9px] font-mono text-neutral-500">
+                  Powered by moonshotai/kimi-k2.6 Reasoning Node
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Clone Human Modal */}
+      <AnimatePresence>
+        {showCloneModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 30 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 180 }}
+              className="bg-[#0e0e0e]/95 border border-neutral-800 rounded-2xl max-w-lg w-full p-6 shadow-[0_0_50px_rgba(239,68,68,0.15)] relative overflow-hidden flex flex-col gap-5"
+            >
+              {/* Soft amber top glow bar */}
+              <div className="absolute top-0 inset-x-0 h-[3px] bg-gradient-to-r from-red-500/20 via-red-500 to-red-500/20" />
+              
+              <div className="absolute top-4 right-4 z-10">
+                <button 
+                  onClick={() => {
+                    playSynthSound('click', isMuted);
+                    setShowCloneModal(false);
+                  }}
+                  className="text-neutral-400 hover:text-white hover:bg-neutral-800/50 p-1.5 rounded-lg transition-all cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-1 text-left">
+                <div className="flex items-center gap-2 text-red-500">
+                  <Brain className="w-5 h-5 animate-pulse" />
+                  <span className="text-[10px] uppercase font-bold tracking-widest font-mono">Cloner Interface</span>
+                </div>
+                <h2 className="text-xl font-bold text-neutral-100 font-serif">🧬 Clone Human (Virtual Mirror)</h2>
+                <p className="text-xs text-neutral-400 leading-relaxed">
+                  Synthesize an exact virtual reflection of yourself. The chatbot will shift into a mirror counterpart to talk back as you.
+                </p>
+              </div>
+
+              <form 
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const target = e.currentTarget;
+                  const name = (target.elements.namedItem('cloneName') as HTMLInputElement).value;
+                  const age = (target.elements.namedItem('cloneAge') as HTMLInputElement).value;
+                  const interests = (target.elements.namedItem('cloneInterests') as HTMLTextAreaElement).value;
+                  const color = (target.elements.namedItem('cloneColor') as HTMLInputElement).value;
+                  const movie = (target.elements.namedItem('cloneMovie') as HTMLInputElement).value;
+                  const actor = (target.elements.namedItem('cloneActor') as HTMLInputElement).value;
+                  const actress = (target.elements.namedItem('cloneActress') as HTMLInputElement).value;
+                  
+                  setCloneData({ name, age, interests, color, movie, actor, actress });
+                  setCloneMode(true);
+                  localStorage.setItem('cresent_clone_data', JSON.stringify({ name, age, interests, color, movie, actor, actress }));
+                  localStorage.setItem('cresent_clone_mode', 'true');
+                  
+                  playSynthSound('success', isMuted);
+                  setShowCloneModal(false);
+                  
+                  // Insert a system notification message into conversation
+                  setMessages(prev => [
+                    ...prev,
+                    {
+                      id: Math.random().toString(),
+                      sender: 'cresent-ai',
+                      text: `🧬 **[Virtual Clone Synced Successfully]**
+Physical **${name}** is now connected to Virtual **${name}**. Let's talk!`,
+                      timestamp: new Date()
+                    }
+                  ]);
+                }}
+                className="flex flex-col gap-4 text-left text-xs text-neutral-300 overflow-y-auto max-h-[60vh] pr-1"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-mono text-[9px] uppercase font-bold text-neutral-400">Full Name</label>
+                    <input name="cloneName" required defaultValue={cloneData?.name || persona.name || 'Vicky'} className="brutal-input text-white text-xs bg-neutral-950" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-mono text-[9px] uppercase font-bold text-neutral-400">Age</label>
+                    <input name="cloneAge" required defaultValue={cloneData?.age || '21'} type="number" className="brutal-input text-white text-xs bg-neutral-950" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-mono text-[9px] uppercase font-bold text-neutral-400">Personal Interests</label>
+                  <textarea name="cloneInterests" required defaultValue={cloneData?.interests || 'Software engineering, AI modeling, dynamic interfaces'} rows={2} className="brutal-input text-white text-xs bg-neutral-950 resize-none" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-mono text-[9px] uppercase font-bold text-neutral-400">Favorite Color</label>
+                    <input name="cloneColor" required defaultValue={cloneData?.color || 'Amber Gold'} className="brutal-input text-white text-xs bg-neutral-950" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-mono text-[9px] uppercase font-bold text-neutral-400">Favorite Movie</label>
+                    <input name="cloneMovie" required defaultValue={cloneData?.movie || 'Interstellar'} className="brutal-input text-white text-xs bg-neutral-950" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-mono text-[9px] uppercase font-bold text-neutral-400">Favorite Actor</label>
+                    <input name="cloneActor" required defaultValue={cloneData?.actor || 'Robert Downey Jr'} className="brutal-input text-white text-xs bg-neutral-950" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="font-mono text-[9px] uppercase font-bold text-neutral-400">Favorite Actress</label>
+                    <input name="cloneActress" required defaultValue={cloneData?.actress || 'Anne Hathaway'} className="brutal-input text-white text-xs bg-neutral-950" />
+                  </div>
+                </div>
+
+                <div className="flex gap-2.5 pt-3 border-t border-neutral-800/40 justify-end">
+                  {cloneMode && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        playSynthSound('delete', isMuted);
+                        setCloneMode(false);
+                        localStorage.setItem('cresent_clone_mode', 'false');
+                        setShowCloneModal(false);
+                        setMessages(prev => [
+                          ...prev,
+                          {
+                            id: Math.random().toString(),
+                            sender: 'cresent-ai',
+                            text: `🔄 **[Clone Mode Deactivated]**
+Switched back to standard CresentX core node.`,
+                            timestamp: new Date()
+                          }
+                        ]);
+                      }}
+                      className="px-4 py-2 text-xs text-red-500 border border-red-500/20 bg-red-500/5 hover:bg-red-500/10 rounded-lg font-bold font-mono transition-all cursor-pointer uppercase"
+                    >
+                      Deactivate Clone
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="px-5 py-2 text-xs bg-red-500 hover:bg-red-400 text-neutral-950 font-bold rounded-lg font-mono transition-all cursor-pointer uppercase shadow-md"
+                  >
+                    🧬 Synthesize Clone
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
         )}
       </AnimatePresence>
 

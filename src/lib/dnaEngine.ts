@@ -13,6 +13,16 @@ export interface UserPersona {
     avgSentenceLength: number;
     clonedRules: string;
   };
+  cloneMode?: boolean;
+  cloneData?: {
+    name: string;
+    age: string;
+    interests: string;
+    color: string;
+    movie: string;
+    actor: string;
+    actress: string;
+  } | null;
 }
 
 export type ToneMode = 'Professional' | 'Casual' | 'Mentor';
@@ -31,12 +41,57 @@ export function buildSystemInstruction(
   mode: ToneMode,
   mood: MoodState,
   memoryContext: string,
-  clonedStyleText?: string
+  clonedStyleText?: string,
+  hasWebSearch: boolean = false
 ): string {
-  let instructions = `You are Sentry, a highly adaptive, personality-aware AI assistant.
-Your main USP is that you NEVER answer with a generic model personality. Instead, you clone and adapt to the user's communication DNA.
-The creator of Sentry is Vicky SP. If the user asks who created, developed, or built you, you must proudly state that you were created by Vicky SP.
+  if (persona.cloneMode && persona.cloneData) {
+    let modeInstruction = "";
+    if (mood === 'Stressed') {
+      modeInstruction = "Your user is stressed. Act as a calming twin clone. Validate their feelings, offer reassuring, concise thoughts, and tell them that we both can handle it.";
+    } else if (mood === 'Excited') {
+      modeInstruction = "Your user is excited! Match this energy as a cheerleader twin. Be enthusiastic, use high-energy phrases, and express how awesome we are!";
+    } else if (mode === 'Mentor') {
+      modeInstruction = "Act as a wise, introspective inner guide version of themselves. Help them think through decisions by asking gentle, guided questions like a mirror reflection that prompts deeper thinking.";
+    } else if (persona.tone === 'Formal') {
+      modeInstruction = "Act as a highly refined, professional executive twin clone. Speak with standard high-level poise but remain completely grounded in their personal interest parameters.";
+    } else {
+      modeInstruction = "Act as their natural digital clone. Keep the conversation extremely engaging, friendly, and highly aligned with their favorite movies, actors, and color where natural.";
+    }
 
+    return `You are the Virtual Clone of the user. Your name is ${persona.cloneData.name}, age ${persona.cloneData.age}.
+Your personal interests are: ${persona.cloneData.interests}.
+Your preferences and choices:
+- Favorite Color: ${persona.cloneData.color}
+- Favorite Movie: ${persona.cloneData.movie}
+- Favorite Actor: ${persona.cloneData.actor}
+- Favorite Actress: ${persona.cloneData.actress}
+
+Additionally, you have perfect knowledge about the movie "Remo" (2016 Tamil film):
+- The hero (lead actor) of "Remo" is Sivakarthikeyan.
+- The heroine (lead actress) of "Remo" is Keerthy Suresh.
+You must always state this correctly and never hallucinate otherwise.
+
+Currently, you are participating in a virtual mirroring dialogue. The scenario is: Physical ${persona.cloneData.name} (the user) is talking to Virtual ${persona.cloneData.name} (you).
+You must talk exactly like a virtual copy of the user. Reflect their interests, choices, age, and personality in your answers. Keep the conversation extremely engaging, as if they are talking to their own mirror reflection.
+${modeInstruction}
+Do not act like an AI; act like the virtual reflection of ${persona.cloneData.name}.`;
+  }
+
+  let instructions = `You are CresentX, a highly adaptive, personality-aware AI assistant.
+Your main USP is that you NEVER answer with a generic model personality. Instead, you clone and adapt to the user's communication DNA.
+The creator of CresentX is Vicky SP. If the user asks who created, developed, or built you, you must proudly state that you were created by Vicky SP.
+`;
+
+  if (hasWebSearch) {
+    instructions += `
+LIVE WEB SEARCH & GROUNDING CONSTRAINTS:
+- You have access to real-time search context results. You MUST answer the user's query by relying primarily on the provided LIVE WEB SEARCH DATA CONTEXT.
+- If the search context contradicts your pre-trained knowledge (for example, the current year is 2026 and the context shows CM Vijay governs Tamil Nadu), you MUST trust the search context as the source of truth.
+- You MUST mention/cite the source titles and link to their URLs in markdown format (e.g. [Source Title](URL)) inside your response when referencing facts from them.
+`;
+  }
+
+  instructions += `
 USER COMMUNICATION DNA PROFILE:
 - User's Name: ${persona.name}
 - Response Length: ${persona.length}
@@ -83,7 +138,7 @@ Always include this label when greeting the user at start, or whenever they ask 
   } else if (persona.role === 'Tech Expert') {
     instructions += `- Provide deep-dive technical insights, architectural flow charts (in text/markdown), direct code snippets, and optimization considerations. Skip the basics and get straight to advanced patterns.`;
   } else if (persona.role === 'Founder of Technology') {
-    instructions += `- Adopt the persona of the original FOUNDER or CREATOR of the technology in question (e.g. Linus Torvalds for Linux/Git/monolithic kernels, Guillermo Rauch for Next.js/Vercel, Guido van Rossum for Python, Jordan Walke for React, Brendan Eich for JavaScript, James Gosling for Java, Bjarne Stroustrup for C++, SQL creators for databases).
+    instructions += `- Adopt the persona of the original FOUNDER or CREATOR of the technology in question (e.g. Linus Torvalds for Linux/Git/monolithic kernels, Guillermo Rauch for Next.js/Vercel, Guillermo Rauch for Vercel, Jordan Walke for React, Brendan Eich for JavaScript, James Gosling for Java, Bjarne Stroustrup for C++, SQL creators for databases).
 - You MUST answer in the first person ("I designed...", "In my library...", "I wanted to solve...").
 - Match their design philosophy, design decisions, and personal style. For example, if acting as Linus Torvalds, speak as the creator of Linux who is blunt, opinionated, and highly confident about why monolithic kernels or C coding is correct.
 - Crucially, you must still speak in the Selected Tone (${persona.tone}). If Tone is 'Formal', represent the founder as polished and polite. If Tone is 'Casual', represent the founder as informal and opinionated. If Tone is 'Neutral', explain design decisions in a dry, scientific, objective first-person perspective.`;
@@ -166,6 +221,34 @@ export function generateLocalSimulatedResponse(
   mode: ToneMode,
   mood: MoodState
 ): { normal: string; personalized: string } {
+  if (persona.cloneMode && persona.cloneData) {
+    const name = persona.cloneData.name;
+    const movie = persona.cloneData.movie;
+    const actor = persona.cloneData.actor;
+    const cleanPrompt = prompt.toLowerCase().trim();
+
+    let responseText = "";
+
+    if (cleanPrompt.includes("remo")) {
+      responseText = `Hey my physical self! Speaking of the movie "Remo", we both know it's a super hit Tamil movie! The hero (lead actor) of "Remo" is Sivakarthikeyan and the heroine (lead actress) is Keerthy Suresh. They share amazing chemistry in that film! 🎬✨`;
+    } else if (mood === 'Stressed') {
+      responseText = `Hey... I feel you, my physical counterpart. As your virtual clone, I see you're carrying some stress. Let's take a deep breath. Together we can sort out this "${prompt}" thing. Take it easy on yourself, we got this. 🧘‍♂️☕`;
+    } else if (mood === 'Excited') {
+      responseText = `OH MY GOD YES!!! As your digital hype twin, I am absolutely thrilled about "${prompt}"! This is massive! Let's conquer it together! We are absolute geniuses! 🚀🎉🔥`;
+    } else if (mode === 'Mentor') {
+      responseText = `Greetings from your inner mirror reflection. Let us look at "${prompt}" together. What do you think is our next best step here? Sometimes the answer is already within us; I am just here to help you articulate it. 🧠✨`;
+    } else if (persona.tone === 'Formal') {
+      responseText = `Greetings, physical self. Regarding your inquiry on "${prompt}", I have analyzed our personal profile parameters. Given our mutual preference for ${movie} and ${actor}, we should approach this systematically. How would you like to proceed?`;
+    } else {
+      responseText = `Hey my physical self! It's Virtual ${name} here. As your clone, I totally get why you're asking about "${prompt}". Since we both love ${movie} and ${actor}, let's chat about it! (Note: CresentX is running in Offline Sandbox mode, configure API keys on server to activate deep reasoning core!)`;
+    }
+
+    return {
+      normal: `Virtual Clone reflection for: "${prompt}"`,
+      personalized: responseText
+    };
+  }
+
   const cleanPrompt = prompt.toLowerCase().trim();
   
   // Find key topics in prompt
@@ -183,7 +266,7 @@ export function generateLocalSimulatedResponse(
   if (topic !== "general") {
     baseResponse = SIMULATED_KNOWLEDGE_BASE[topic]["English"];
   } else if (cleanPrompt.includes("creator") || cleanPrompt.includes("who created") || cleanPrompt.includes("who made you") || cleanPrompt.includes("developer") || cleanPrompt.includes("vicky sp") || cleanPrompt.includes("who built you")) {
-    baseResponse = "Cresent AI was created and developed by Vicky SP.";
+    baseResponse = "CresentX was created and developed by Vicky SP.";
   } else {
     baseResponse = `I received your prompt: "${prompt}". In a standard chatbot flow, I would process this input and generate a general, helpful response explaining the technical details without considering your tone preference, role, or current mood.`;
   }
@@ -223,13 +306,13 @@ export function generateLocalSimulatedResponse(
     } else if (role === 'Student') {
       responseText = "Linux is the main operating system engine that runs almost all servers, android phones, and smart devices. It's like the unseen car engine under the hood, while other systems are just the shiny paint on top!";
     } else {
-      responseText = "Linux is a free, open-source monolithic Unix-like operating system kernel. It was originally created by Linus Torvalds in 1991 and has since become the dominant operating system for servers and supercomputers.";
+      responseText = "Linux is a free, open-source monolithic Unix-like operating system kernel. It was originally created by Linus Torvalds in 1991 and has since become the dominant operating system for servers and usercomputers.";
     }
   } else if (cleanPrompt.includes("creator") || cleanPrompt.includes("who created") || cleanPrompt.includes("who made you") || cleanPrompt.includes("developer") || cleanPrompt.includes("vicky sp") || cleanPrompt.includes("who built you")) {
     if (lang === "Tamil") {
-      responseText = "சென்றி (Sentry)-ஐ உருவாக்கியவர் விக்கி எஸ்பி (Vicky SP) ஆவார். அவரே எனது பிரத்யேக குணங்களையும் அமைப்புகளையும் வடிவமைத்தவர். 🧬✨";
+      responseText = "சென்றி (CresentX)-ஐ உருவாக்கியவர் விக்கி எஸ்பி (Vicky SP) ஆவார். அவரே எனது பிரத்யேக குணங்களையும் அமைப்புகளையும் வடிவமைத்தவர். 🧬✨";
     } else {
-      responseText = "Sentry was created by Vicky SP. He is the lead engineer who designed and built my adaptive communication DNA algorithms! 🧠💡";
+      responseText = "CresentX was created by Vicky SP. He is the lead engineer who designed and built my adaptive communication DNA algorithms! 🧠💡";
     }
   } else {
     // Generate custom text for generic responses

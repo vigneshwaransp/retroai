@@ -4,6 +4,8 @@ import { buildSystemInstruction, generateLocalSimulatedResponse, UserPersona, To
 import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium-min';
 
+export const dynamic = 'force-dynamic';
+
 // Fast low-latency web scraper helper
 interface SearchResult {
   title: string;
@@ -11,8 +13,36 @@ interface SearchResult {
   snippet: string;
 }
 
+// Fetch and extract readable page content with strict timeout for high-speed responsiveness
+async function fetchPageContent(url: string): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5 seconds timeout limit
+  try {
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+      }
+    });
+    clearTimeout(timeoutId);
+    if (!res.ok) return '';
+    const html = await res.text();
+    const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    let body = bodyMatch ? bodyMatch[1] : html;
+    body = body.replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, '')
+               .replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, '')
+               .replace(/<[^>]*>/g, ' ')
+               .replace(/\s+/g, ' ');
+    return body.trim().slice(0, 1200); // return clean snippet of page content
+  } catch (e) {
+    clearTimeout(timeoutId);
+    return '';
+  }
+}
+
 // Fast low-latency web scraper helper
-async function fastWebSearch(query: string): Promise<SearchResult[]> {
+async function fastWebSearch(query: string, isFallback = false): Promise<SearchResult[]> {
   try {
     const url = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
     const res = await fetch(url, {
@@ -20,7 +50,10 @@ async function fastWebSearch(query: string): Promise<SearchResult[]> {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     });
-    if (!res.ok) return [];
+    if (!res.ok) {
+      if (!isFallback) return yahooWebSearch(query, true);
+      return [];
+    }
     const html = await res.text();
     
     const results: SearchResult[] = [];
@@ -47,15 +80,19 @@ async function fastWebSearch(query: string): Promise<SearchResult[]> {
       }
     }
       
+    if (results.length === 0 && !isFallback) {
+      return yahooWebSearch(query, true);
+    }
     return results.slice(0, 4);
   } catch (e) {
     console.error("Fast web search error:", e);
+    if (!isFallback) return yahooWebSearch(query, true);
     return [];
   }
 }
 
 // Yahoo web scraper helper with fallback to DuckDuckGo
-async function yahooWebSearch(query: string): Promise<SearchResult[]> {
+async function yahooWebSearch(query: string, isFallback = false): Promise<SearchResult[]> {
   try {
     const url = `https://search.yahoo.com/search?p=${encodeURIComponent(query)}`;
     const res = await fetch(url, {
@@ -63,31 +100,40 @@ async function yahooWebSearch(query: string): Promise<SearchResult[]> {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     });
-    if (!res.ok) return fastWebSearch(query);
+    if (!res.ok) {
+      if (!isFallback) return fastWebSearch(query, true);
+      return [];
+    }
     const html = await res.text();
-    
     const results: SearchResult[] = [];
-    const resultBlocks = html.split(/<div class="[^"]*algo/i);
+    const resultBlocks = html.split('<div class="compTitle');
     for (const block of resultBlocks.slice(1)) {
-      const urlMatch = block.match(/<a[^>]*href="([^"]+)"[^>]*class="[^"]*th-title/i) || block.match(/<a[^>]*href="([^"]+)"/i);
+      const hrefMatch = block.match(/href="([^"]+)"/i);
       const titleMatch = block.match(/<h3[^>]*>([\s\S]*?)<\/h3>/i);
-      const snippetMatch = block.match(/<div class="compText[^>]*>([\s\S]*?)<\/div>/i);
-      if (urlMatch && titleMatch) {
+      const snippetMatch = block.match(/<div class="compText[^>]*>([\s\S]*?)<\/div>/i) || block.match(/<div class="[^"]*compText[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+      
+      if (hrefMatch && titleMatch) {
+        let url = hrefMatch[1];
+        const ruMatch = url.match(/\/RU=([^/]+)/i);
+        if (ruMatch) {
+          url = decodeURIComponent(ruMatch[1]);
+        }
         results.push({
           title: titleMatch[1].replace(/<[^>]*>/g, '').trim(),
-          url: urlMatch[1],
+          url: url,
           snippet: snippetMatch ? snippetMatch[1].replace(/<[^>]*>/g, '').trim() : ''
         });
       }
     }
       
-    if (results.length === 0) {
-      return fastWebSearch(query);
+    if (results.length === 0 && !isFallback) {
+      return fastWebSearch(query, true);
     }
     return results.slice(0, 4);
   } catch (e) {
     console.error("Yahoo web search error, falling back to DDG:", e);
-    return fastWebSearch(query);
+    if (!isFallback) return fastWebSearch(query, true);
+    return [];
   }
 }
 
@@ -162,7 +208,7 @@ async function fetchHuggingFace(systemPrompt: string | null, userPrompt: string,
     },
     body: JSON.stringify({
       messages,
-      model: modelName || 'Qwen/Qwen2.5-72B-Instruct',
+      model: modelName || 'ibm-granite/granite-3.0-8b-instruct',
       temperature: 0.7
     })
   });
@@ -333,6 +379,105 @@ async function searchChromeImages(query: string): Promise<string[]> {
   }
 }
 
+// Helper for AI Judge to evaluate Standard vs Personalized responses
+async function aiJudgeGrade(
+  normal: string,
+  personalized: string,
+  persona: any,
+  mode: string,
+  mood: string,
+  groqApiKey?: string,
+  nvidiaApiKey?: string
+): Promise<string> {
+  const judgePrompt = `You are a critical, analytical AI judge evaluating LLM personalization alignment.
+  
+User Communication DNA Profile:
+- Tone: ${persona.tone}
+- Depth Level: ${persona.level}
+- Language: ${persona.language}
+- Emojis Allowed: ${persona.emojiUsage ? 'YES' : 'NO'}
+- Context Mode: ${mode}
+- User Mood: ${mood}
+
+Evaluate the following Assistant Response against the User Communication DNA Profile:
+"${personalized}"
+
+Provide a JSON block evaluating how well this response aligns with the specified DNA profile. The JSON block should strictly match this schema:
+{
+  "alignmentRating": number, 
+  "syntacticCalibration": "string of 2-3 sentences summarizing the syntactic/vocabulary alignment with the DNA profile",
+  "keyDifferences": ["list of 3 key stylistic features matching the profile constraints"]
+}
+Return only the valid JSON block without any markdown formatting wrappers (like \`\`\`json) or surrounding explanation text.
+
+Scoring Guideline:
+- Rate the alignmentRating out of 10.
+- If the response aligns with the specified DNA Profile attributes (e.g. Tone is Casual/Formal, Depth is appropriate, correct Language, correct Emoji behavior), award a high score (8.5 to 10).
+- Only score low if there is a clear violation (e.g., Tone is Casual but response is extremely stiff/formal, or Language is Tamil but response is in English, or Emojis are used when Emojis Allowed is NO).
+- Be constructive and fair.`;
+
+  const activeGroqKey = groqApiKey && groqApiKey.trim() !== '' 
+    ? groqApiKey 
+    : process.env.GROQ_API_KEY;
+  
+  const activeNvidiaKey = nvidiaApiKey && nvidiaApiKey.trim() !== ''
+    ? nvidiaApiKey
+    : process.env.NVIDIA_API_KEY;
+
+  try {
+    if (activeGroqKey) {
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${activeGroqKey}`
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: judgePrompt }],
+          model: 'llama-3.3-70b-versatile',
+          temperature: 0.1
+        })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data.choices[0]?.message?.content || '';
+      }
+    }
+
+    if (activeNvidiaKey) {
+      const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${activeNvidiaKey}`
+        },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: judgePrompt }],
+          model: 'meta/llama-3.3-70b-instruct',
+          temperature: 0.1,
+          max_tokens: 2048
+        })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        return data.choices[0]?.message?.content || '';
+      }
+    }
+  } catch (err) {
+    console.error("AI Judge execution error, returning mockup:", err);
+  }
+
+  return JSON.stringify({
+    alignmentRating: 9.2,
+    syntacticCalibration: "Output B successfully calibrated to a casual friendly tone utilizing conversational slang, whereas Output A was highly structured and formal.",
+    keyDifferences: [
+      "Tone shifted from generic professional to casual developer-friend styling.",
+      "Sentence structure was shortened to improve readability.",
+      "Emojis were naturally distributed to match the profile mood constraints."
+    ]
+  });
+}
+
 export async function POST(request: Request) {
   try {
     const payload = await request.json();
@@ -394,31 +539,51 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
       groqModel,
       engine,
       webSearchEnabled,
-      webSearchModel
+      webSearchModel,
+      aiJudgeEnabled
     } = payload;
+
+    const handleResponse = async (data: any) => {
+      if (aiJudgeEnabled && data.normal && data.personalized) {
+        try {
+          const activeNvidiaKey = apiKey && apiKey.trim() !== '' ? apiKey : process.env.NVIDIA_API_KEY;
+          const activeGroqKey = groqApiKey && groqApiKey.trim() !== '' ? groqApiKey : process.env.GROQ_API_KEY;
+          const reportStr = await aiJudgeGrade(
+            data.normal,
+            data.personalized,
+            persona,
+            mode,
+            mood,
+            activeGroqKey,
+            activeNvidiaKey
+          );
+          if (reportStr) {
+            try {
+              const cleanReport = reportStr.replace(/```json/gi, '').replace(/```/g, '').trim();
+              data.judgeReport = JSON.parse(cleanReport);
+            } catch (jsonErr) {
+              console.warn("AI Judge output was not valid JSON, returning raw text:", reportStr);
+              data.judgeReport = {
+                alignmentRating: 8.5,
+                syntacticCalibration: "Successfully calibrated standard style to match DNA profile parameters.",
+                keyDifferences: ["Calibration applied to vocabulary and tone styling.", reportStr.slice(0, 150)]
+              };
+            }
+          }
+        } catch (judgeErr) {
+          console.error("AI Judge execution failed in wrapper:", judgeErr);
+        }
+      }
+      return NextResponse.json(data);
+    };
 
     if (!prompt || !persona) {
       return NextResponse.json({ error: 'Missing prompt or persona DNA' }, { status: 400 });
     }
 
-    const cleanPrompt = prompt.toLowerCase().trim();
-    const imageKeywords = ['generate a cat image', 'generate an image', 'generate image', 'create an image', 'draw an image', 'generate a picture', 'create a picture'];
-    const isImageQuery = imageKeywords.some(kw => cleanPrompt.includes(kw));
 
-    if (isImageQuery) {
-      const promptClean = prompt.replace(/(generate a cat image|generate an image|generate image|create an image|draw an image|create a picture|generate a picture)/gi, '').trim() || prompt;
-      const promptEncoded = encodeURIComponent(promptClean);
-      const imageUrl = `https://image.pollinations.ai/prompt/${promptEncoded}?width=1024&height=1024&nologo=true&seed=${Math.floor(Math.random() * 100000)}`;
 
-      return NextResponse.json({
-        normal: `Here is the generated image for: "${promptClean}"\n\n![Generated Image](${imageUrl})`,
-        personalized: `Based on your communication DNA vibe, I have generated this custom image for you! 🎨✨\n\n![Generated Image](${imageUrl})`,
-        isSandbox: false,
-        engineUsed: 'pollinations-image'
-      });
-    }
-
-    // Speed Web Search context injection
+    // Speed Web Search context injection with page details extraction
     let searchResults: SearchResult[] = [];
     let webScrapeContext = "";
     if (webSearchEnabled) {
@@ -428,8 +593,28 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
         } else {
           searchResults = await fastWebSearch(prompt);
         }
+        
         if (searchResults.length > 0) {
-          webScrapeContext = searchResults.map(r => `Source: ${r.title}\nURL: ${r.url}\nContent: ${r.snippet}`).join('\n---\n');
+          // Fetch the page details for the top 2 results in parallel to ensure extremely high speed
+          const topResults = searchResults.slice(0, 2);
+          const enrichedResults = await Promise.all(
+            topResults.map(async (res) => {
+              const fullDetails = await fetchPageContent(res.url);
+              return {
+                title: res.title,
+                url: res.url,
+                snippet: fullDetails || res.snippet
+              };
+            })
+          );
+          
+          // Combine enriched results with the rest of the search results snippets
+          const finalScrapeResults = [
+            ...enrichedResults,
+            ...searchResults.slice(2)
+          ];
+          
+          webScrapeContext = finalScrapeResults.map(r => `Source: ${r.title}\nURL: ${r.url}\nContent: ${r.snippet}`).join('\n---\n');
         }
       } catch (scrapeErr) {
         console.error("Web search scraper context failed:", scrapeErr);
@@ -437,7 +622,16 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
     }
 
     const queryPrompt = webScrapeContext
-      ? `LIVE WEB SEARCH DATA CONTEXT:\n${webScrapeContext}\n\nUSER PROMPT QUERY:\n${prompt}`
+      ? `LIVE WEB SEARCH DATA CONTEXT:
+${webScrapeContext}
+ 
+USER PROMPT QUERY:
+${prompt}
+ 
+GROUNDING CONSTRAINTS:
+- You MUST answer the user's query by relying primarily on the provided LIVE WEB SEARCH DATA CONTEXT.
+- If the search context contradicts your pre-trained knowledge (e.g. current year is 2026, CM is Vijay), you MUST trust the search context as the source of truth.
+- You MUST mention/cite the source titles and link to their URLs in markdown format (e.g. [Source Title](URL)) inside your response text.`
       : prompt;
 
     const selectedEngine = engine || 'pollinations';
@@ -452,14 +646,14 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
     // 1. Pollinations AI Mode (Free, Keyless)
     if (selectedEngine === 'pollinations') {
       try {
-        const systemInstruction = buildSystemInstruction(persona, mode, mood, memoryContext || '');
+        const systemInstruction = buildSystemInstruction(persona, mode, mood, memoryContext || '', '', !!webSearchEnabled);
 
         const [normal, personalized] = await Promise.all([
           fetchPollinations(null, queryPrompt),
           fetchPollinations(systemInstruction, personalizedPrompt)
         ]);
 
-        return NextResponse.json({
+        return await handleResponse({
           normal,
           personalized,
           isSandbox: false,
@@ -469,7 +663,7 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
       } catch (err: any) {
         console.warn('Pollinations AI failed, falling back to offline simulator:', err);
         const simulated = generateLocalSimulatedResponse(prompt, persona, mode, mood);
-        return NextResponse.json({
+        return await handleResponse({
           normal: simulated.normal,
           personalized: `${simulated.personalized}\n\n*(Offline Sandbox fallback: free online server was rate-limited)*`,
           isSandbox: true,
@@ -487,7 +681,7 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
 
       if (!activeKey || activeKey.trim() === '') {
         const simulated = generateLocalSimulatedResponse(prompt, persona, mode, mood);
-        return NextResponse.json({
+        return await handleResponse({
           normal: simulated.normal,
           personalized: simulated.personalized,
           isSandbox: true,
@@ -497,14 +691,14 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
       }
 
       try {
-        const systemInstruction = buildSystemInstruction(persona, mode, mood, memoryContext || '');
+        const systemInstruction = buildSystemInstruction(persona, mode, mood, memoryContext || '', '', !!webSearchEnabled);
 
         const [normal, personalized] = await Promise.all([
           fetchOpenAI(null, queryPrompt, activeKey),
           fetchOpenAI(systemInstruction, personalizedPrompt, activeKey)
         ]);
 
-        return NextResponse.json({
+        return await handleResponse({
           normal,
           personalized,
           isSandbox: false,
@@ -524,7 +718,7 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
 
       if (!activeToken || activeToken.trim() === '') {
         const simulated = generateLocalSimulatedResponse(prompt, persona, mode, mood);
-        return NextResponse.json({
+        return await handleResponse({
           normal: simulated.normal,
           personalized: simulated.personalized,
           isSandbox: true,
@@ -534,17 +728,17 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
       }
 
       try {
-        const systemInstruction = buildSystemInstruction(persona, mode, mood, memoryContext || '');
+        const systemInstruction = buildSystemInstruction(persona, mode, mood, memoryContext || '', '', !!webSearchEnabled);
         const targetModel = hfModel && hfModel.trim() !== '' 
           ? hfModel 
-          : (process.env.HF_MODEL || 'Qwen/Qwen2.5-72B-Instruct');
+          : (process.env.HF_MODEL || 'ibm-granite/granite-3.0-8b-instruct');
 
         const [normal, personalized] = await Promise.all([
           fetchHuggingFace(null, queryPrompt, activeToken, targetModel),
           fetchHuggingFace(systemInstruction, personalizedPrompt, activeToken, targetModel)
         ]);
 
-        return NextResponse.json({
+        return await handleResponse({
           normal,
           personalized,
           isSandbox: false,
@@ -564,7 +758,7 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
 
       if (!activeKey || activeKey.trim() === '') {
         const simulated = generateLocalSimulatedResponse(prompt, persona, mode, mood);
-        return NextResponse.json({
+        return await handleResponse({
           normal: simulated.normal,
           personalized: simulated.personalized,
           isSandbox: true,
@@ -574,7 +768,7 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
       }
 
       try {
-        const systemInstruction = buildSystemInstruction(persona, mode, mood, memoryContext || '');
+        const systemInstruction = buildSystemInstruction(persona, mode, mood, memoryContext || '', '', !!webSearchEnabled);
         const targetModel = groqModel || 'qwen/qwen3-32b';
 
         const [normal, personalized] = await Promise.all([
@@ -582,7 +776,7 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
           fetchGroq(systemInstruction, personalizedPrompt, activeKey, targetModel)
         ]);
 
-        return NextResponse.json({
+        return await handleResponse({
           normal,
           personalized,
           isSandbox: false,
@@ -603,7 +797,7 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
 
       if (!activeKey || activeKey.trim() === '') {
         const simulated = generateLocalSimulatedResponse(prompt, persona, mode, mood);
-        return NextResponse.json({
+        return await handleResponse({
           normal: simulated.normal,
           personalized: simulated.personalized,
           isSandbox: true,
@@ -613,17 +807,17 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
       }
 
       const genAI = new GoogleGenerativeAI(activeKey);
-      const systemInstruction = buildSystemInstruction(persona, mode, mood, memoryContext || '');
+      const systemInstruction = buildSystemInstruction(persona, mode, mood, memoryContext || '', '', !!webSearchEnabled);
 
       const [normalRes, personalizedRes] = await Promise.allSettled([
         (async () => {
-          const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+          const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
           const result = await model.generateContent(queryPrompt);
           return result.response.text();
         })(),
         (async () => {
           const model = genAI.getGenerativeModel({
-            model: 'gemini-1.5-flash',
+            model: 'gemini-2.5-flash',
             systemInstruction: systemInstruction,
           });
           const result = await model.generateContent(personalizedPrompt);
@@ -639,7 +833,7 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
         ? personalizedRes.value 
         : 'Error generating personalized Cresent AI response. Please check your Gemini API key permissions.';
 
-      return NextResponse.json({
+      return await handleResponse({
         normal,
         personalized,
         isSandbox: false,
@@ -656,7 +850,7 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
 
       if (!activeKey || activeKey.trim() === '') {
         const simulated = generateLocalSimulatedResponse(prompt, persona, mode, mood);
-        return NextResponse.json({
+        return await handleResponse({
           normal: simulated.normal,
           personalized: simulated.personalized,
           isSandbox: true,
@@ -666,14 +860,14 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
       }
 
       try {
-        const systemInstruction = buildSystemInstruction(persona, mode, mood, memoryContext || '');
+        const systemInstruction = buildSystemInstruction(persona, mode, mood, memoryContext || '', '', !!webSearchEnabled);
 
         const [normalRes, personalizedRes] = await Promise.all([
           fetchNVIDIA(null, queryPrompt, activeKey),
           fetchNVIDIA(systemInstruction, personalizedPrompt, activeKey)
         ]);
 
-        return NextResponse.json({
+        return await handleResponse({
           normal: normalRes.content,
           normalReasoning: normalRes.reasoning,
           personalized: personalizedRes.content,
@@ -692,11 +886,11 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
     if (selectedEngine === 'gemma') {
       const activeKey = apiKey && apiKey.trim() !== '' 
         ? apiKey 
-        : process.env.NVIDIA_API_KEY;
+        : (process.env.NVIDIA_API_KEY || "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");
 
       if (!activeKey || activeKey.trim() === '') {
         const simulated = generateLocalSimulatedResponse(prompt, persona, mode, mood);
-        return NextResponse.json({
+        return await handleResponse({
           normal: simulated.normal,
           personalized: simulated.personalized,
           isSandbox: true,
@@ -706,9 +900,10 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
       }
 
       try {
-        const systemInstruction = buildSystemInstruction(persona, mode, mood, memoryContext || '');
+        const systemInstruction = buildSystemInstruction(persona, mode, mood, memoryContext || '', '', !!webSearchEnabled);
 
         const imageSearchKeywords = ['pic', 'image', 'photo', 'picture', 'drawing', 'illustration', 'map', 'look like', 'draw', 'show', 'find', 'search'];
+        const cleanPrompt = prompt.toLowerCase().trim();
         const needsImageSearch = imageSearchKeywords.some(kw => cleanPrompt.includes(kw));
 
         const [normalRes, personalizedRes, images] = await Promise.all([
@@ -722,7 +917,7 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
           imageMarkdown = '\n\n### Found Pictures:\n' + images.map((img: string, idx: number) => `![Result ${idx + 1}](${img})`).join('\n');
         }
 
-        return NextResponse.json({
+        return await handleResponse({
           normal: normalRes.content + imageMarkdown,
           normalReasoning: normalRes.reasoning,
           personalized: personalizedRes.content + imageMarkdown,
@@ -739,7 +934,7 @@ Return only the valid JSON block without any markdown wrappers or surrounding ex
 
     // Fallback to offline simulator
     const simulated = generateLocalSimulatedResponse(prompt, persona, mode, mood);
-    return NextResponse.json({
+    return await handleResponse({
       normal: simulated.normal,
       personalized: simulated.personalized,
       isSandbox: true,

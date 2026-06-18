@@ -7,7 +7,7 @@ export async function GET() {
     hasHfToken: !!process.env.HF_TOKEN,
     hasGroqKey: !!process.env.GROQ_API_KEY,
     hasNvidiaKey: !!process.env.NVIDIA_API_KEY,
-    hfModel: process.env.HF_MODEL || 'Qwen/Qwen2.5-72B-Instruct',
+    hfModel: process.env.HF_MODEL || 'ibm-granite/granite-3.0-8b-instruct',
     groqModel: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
   });
 }

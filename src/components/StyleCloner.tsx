@@ -177,8 +177,8 @@ export default function StyleCloner({
             className="flex flex-col gap-4"
           >
             {isLocked && (
-              <div className="flex items-center gap-2 text-amber-605 dark:text-amber-400 text-xs font-bold border border-amber-200 dark:border-amber-900/50 p-3 bg-amber-50 dark:bg-amber-950/20 select-none rounded-lg">
-                <Lock className="w-4 h-4 flex-shrink-0 text-amber-500" />
+              <div className="flex items-center gap-2 text-red-605 dark:text-red-400 text-xs font-bold border border-red-200 dark:border-red-900/50 p-3 bg-red-50 dark:bg-red-950/20 select-none rounded-lg">
+                <Lock className="w-4 h-4 flex-shrink-0 text-red-500" />
                 <span>DNA Style is locked. Unlock in Persona DNA settings to modify.</span>
               </div>
             )}

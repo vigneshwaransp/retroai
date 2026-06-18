@@ -128,7 +128,7 @@ export default function RagAgent({ isMuted = false }: RagAgentProps) {
       {/* Target API sync status */}
       <div className="p-4 brutal-card bg-[var(--card-bg)] flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2.5">
-          <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-[var(--accent-primary)]' : 'bg-yellow-500 animate-pulse'}`} />
+          <div className={`w-2 h-2 rounded-full ${connectionStatus === 'connected' ? 'bg-[var(--accent-primary)]' : 'bg-red-500 animate-pulse'}`} />
           <div className="flex flex-col">
             <span className="text-[10px] font-mono font-bold tracking-widest text-neutral-400 uppercase">RAG Backend Sync</span>
             <span className="text-xs font-semibold font-mono text-neutral-500">ragify-eight.vercel.app</span>

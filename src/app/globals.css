@@ -1,267 +1,174 @@
 @import "tailwindcss";
 
 :root {
-  --background: #FCFCFC; /* Clean metallic paper white */
-  --foreground: #000000;
-  
-  --border-color: #DEE2E6;
-  --shadow-color: rgba(0, 0, 0, 0.05);
-  
-  --accent-primary: #000000; /* Contrast black accent */
-  --accent-primary-hover: #212529;
-  
-  --sidebar-bg: #F1F3F5; /* Cool light metallic slate */
-  --card-bg: #FFFFFF;
-  --input-bg: #FFFFFF;
-  
-  /* Force dark black text inside light-theme containers */
-  --foreground: #000000;
-  
-  --accent-green: #333333;
-  --accent-cyan: #495057;
-  --accent-pink: #6C757D;
-  --accent-yellow: #ADB5BD;
+  --background: #f8fafc; /* Slate 50 */
+  --foreground: #0f172a; /* Slate 900 */
+  --border-color: #e2e8f0; /* Slate 200 */
+  --shadow-color: rgba(15, 23, 42, 0.05);
+  --accent-primary: #2563eb; /* Blue 600 */
+  --accent-primary-hover: #1d4ed8; /* Blue 700 */
+  --sidebar-bg: #ffffff;
+  --card-bg: #ffffff;
+  --input-bg: #ffffff;
   
   --mono-card: var(--card-bg);
   --mono-border: var(--border-color);
   --mono-hover: var(--accent-primary);
   --mono-input: var(--input-bg);
   --mono-input-border: var(--border-color);
-  --mono-shadow: 0 1px 3px var(--shadow-color);
 }
 
 html.dark {
-  --background: #000000; /* Pure deep black background */
-  --foreground: #E5E5E5; /* Metallic silver text */
-  
-  --border-color: #262629; /* Brushed titanium border */
-  --shadow-color: rgba(0, 0, 0, 0.4);
-  
-  --accent-primary: #FFFFFF; /* High-contrast white accent */
-  --accent-primary-hover: #E5E5E5;
-  
-  --sidebar-bg: #0A0A0B; /* Deep carbon black sidebar */
-  --card-bg: #121214; /* Dark metal card background */
-  --input-bg: #121214;
-  
-  --accent-green: #E5E5E5;
-  --accent-cyan: #CCCCCC;
-  --accent-pink: #A3A3A3;
-  --accent-yellow: #525252;
-  
-  --mono-card: var(--card-bg);
-  --mono-border: var(--border-color);
-  --mono-hover: var(--accent-primary);
-  --mono-input: var(--input-bg);
-  --mono-input-border: var(--border-color);
-  --mono-shadow: 0 2px 8px var(--shadow-color);
+  --background: #0b0f19; /* Obsidian Void */
+  --foreground: #f1f5f9; /* Slate 100 */
+  --border-color: #1e293b; /* Slate 800 */
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --accent-primary: #3b82f6; /* Blue 500 */
+  --accent-primary-hover: #60a5fa; /* Blue 400 */
+  --sidebar-bg: #111827; /* Gray 900 */
+  --card-bg: #1f2937; /* Gray 800 */
+  --input-bg: #111827;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-plus-jakarta-sans), 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-space-grotesk), 'Space Grotesk', monospace;
-  --font-cyberpunk: var(--font-rajdhani), 'Rajdhani', sans-serif;
-  --font-cursive: var(--font-reenie-beanie), 'Reenie Beanie', cursive;
-  --font-serif: 'Source Serif Pro', 'Georgia', serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 body {
   background-color: var(--background) !important;
   color: var(--foreground) !important;
-  font-family: var(--font-cyberpunk), var(--font-sans), sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
-  position: relative;
   padding: 0;
   margin: 0;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Elegant, rounded paper cards (Claude-like) */
+/* Polished Card Utility */
 @utility brutal-card {
-  background: var(--card-bg);
+  background-color: var(--card-bg);
   border: 1px solid var(--border-color);
-  box-shadow: 0 1px 3px var(--shadow-color), 0 10px 40px -10px rgba(0, 0, 0, 0.02);
   border-radius: 12px;
   color: var(--foreground);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px var(--shadow-color), 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 
   &:hover {
-    border-color: rgba(217, 119, 6, 0.3);
-    box-shadow: 0 4px 12px var(--shadow-color), 0 20px 50px -12px rgba(0, 0, 0, 0.04);
+    border-color: var(--accent-primary);
+    box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
 }
 
-/* Minimalist elegant buttons */
+/* Clean Professional Buttons */
 @utility brutal-btn {
-  background: var(--card-bg);
-  color: var(--foreground);
-  border: 1px solid var(--border-color);
+  background-color: var(--accent-primary);
+  color: #ffffff;
+  border: 1px solid transparent;
   border-radius: 8px;
   cursor: pointer;
-  font-weight: 650;
-  font-size: 11px;
-  letter-spacing: 0.01em;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-weight: 500;
+  font-size: 13px;
   padding: 8px 16px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 
   &:hover {
-    background: var(--background);
-    border-color: var(--accent-primary);
-    color: var(--accent-primary);
+    background-color: var(--accent-primary-hover);
+    transform: translateY(-0.5px);
   }
 
   &:active {
-    transform: scale(0.98);
+    transform: translateY(0.5px);
   }
 }
 
 @utility brutal-btn-active {
-  background: var(--accent-primary) !important;
-  color: #FFFFFF !important;
-  border-color: var(--accent-primary) !important;
-  box-shadow: 0 2px 8px var(--shadow-color) !important;
+  background-color: var(--accent-primary-hover) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4) !important;
 }
 
-/* Warm input styling */
+/* Professional Inputs */
 @utility brutal-input {
-  background: var(--input-bg);
+  background-color: var(--input-bg);
   color: var(--foreground);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 10px 14px;
   transition: all 0.2s ease;
+  font-size: 14px;
 
   &:focus {
     outline: none;
     border-color: var(--accent-primary);
-    box-shadow: 0 0 0 2px rgba(217, 119, 6, 0.12);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
   }
 }
 
 /* Custom Select Dropdowns */
 @utility brutal-select {
   appearance: none;
-  background-image: url("data:image/svg+xml;utf8,<svg fill='none' stroke='%2310b981' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'></path></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg fill='none' stroke='%2364748b' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'></path></svg>");
   background-repeat: no-repeat;
   background-position: right 12px center;
-  background-size: 12px;
+  background-size: 14px;
   padding-right: 36px;
 }
 
 html.dark .brutal-select {
-  background-image: url("data:image/svg+xml;utf8,<svg fill='none' stroke='%2334d399' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'></path></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg fill='none' stroke='%2394a3b8' stroke-width='2' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'><path stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'></path></svg>");
 }
 
-/* Custom Sliders */
+/* Elegant Modern Sliders */
 input[type="range"].brutal-slider {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 4px;
+  height: 5px;
   background: var(--border-color);
-  border-radius: 2px;
+  border-radius: 9999px;
   outline: none;
 }
 
 input[type="range"].brutal-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   background: var(--accent-primary);
-  border: 1px solid #ffffff;
+  border: 2px solid var(--sidebar-bg);
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  transition: transform 0.15s ease;
-}
-
-input[type="range"].brutal-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform 0.1s ease;
+  
+  &:hover {
+    transform: scale(1.1);
+  }
 }
 
 /* Backwards compatibility aliases */
-@utility mono-card {
-  @apply brutal-card;
-}
+@utility mono-card { @apply brutal-card; }
+@utility mono-btn { @apply brutal-btn; }
+@utility mono-btn-active { @apply brutal-btn-active; }
+@utility mono-input { @apply brutal-input; }
+@utility mono-select { @apply brutal-select; }
 
-@utility mono-btn {
-  @apply brutal-btn;
-}
-
-@utility mono-btn-active {
-  @apply brutal-btn-active;
-}
-
-@utility mono-input {
-  @apply brutal-input;
-}
-
-@utility mono-select {
-  @apply brutal-select;
-}
-
-input[type="range"].nm-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 4px;
-  background: var(--border-color);
-  border-radius: 2px;
-  outline: none;
-}
-
-input[type="range"].nm-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  background: var(--accent-primary);
-  border: 1px solid #ffffff;
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  transition: transform 0.15s ease;
-}
-
-input[type="range"].nm-slider::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-}
-
-/* Serif Headings (Claude Style) */
 h1, h2, h3, h4 {
-  font-family: var(--font-serif), 'Source Serif Pro', 'Georgia', serif;
-  font-weight: 550;
-  text-transform: none;
-  letter-spacing: -0.01em;
-}
-
-.text-shadow-glow {
-  text-shadow: none;
-}
-
-/* Claude style code outputs */
-.terminal-output {
-  background-color: #FDFDFD !important;
-  color: #1A1A1A !important;
-  font-family: var(--font-mono), monospace;
-  border: 1px solid #E2E2DF;
-  border-radius: 8px;
-  box-shadow: none;
-}
-
-html.dark .terminal-output {
-  background-color: #111111 !important;
-  color: #E3E3E2 !important;
-  border-color: #2D2D2D;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 600;
+  color: var(--foreground);
 }
 
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -269,83 +176,9 @@ html.dark .terminal-output {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.08);
-  border-radius: 3px;
-  
+  background: var(--border-color);
+  border-radius: 9999px;
   &:hover {
-    background: rgba(0, 0, 0, 0.15);
-  }
-}
-
-html.dark ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.15);
-  }
-}
-
-/* GenAI Mode: Neon Style Electric Borders */
-.genai-mode {
-  --border-color: #ec4899 !important;
-  --accent-primary: #ec4899 !important;
-  --accent-primary-hover: #f472b6 !important;
-}
-
-/* Base custom classes to enforce electric borders */
-.genai-mode .brutal-card,
-.genai-mode .mono-card,
-.genai-mode .brutal-input,
-.genai-mode .mono-input,
-.genai-mode aside,
-.genai-mode header,
-.genai-mode footer,
-.genai-mode .border,
-.genai-mode .border-r,
-.genai-mode .border-b,
-.genai-mode .border-t,
-.genai-mode .border-l {
-  border-color: #ec4899 !important;
-  box-shadow: 0 0 10px rgba(236, 72, 153, 0.25), inset 0 0 5px rgba(236, 72, 153, 0.15) !important;
-  transition: all 0.3s ease-in-out;
-}
-
-/* Interactive elements get a brighter glow on focus/hover */
-.genai-mode .brutal-input:focus,
-.genai-mode .mono-input:focus,
-.genai-mode textarea:focus {
-  border-color: #f472b6 !important;
-  box-shadow: 0 0 15px rgba(236, 72, 153, 0.6), inset 0 0 8px rgba(236, 72, 153, 0.3) !important;
-}
-
-.genai-mode .brutal-btn:hover,
-.genai-mode .mono-btn:hover,
-.genai-mode button:hover {
-  border-color: #f472b6 !important;
-  box-shadow: 0 0 12px rgba(236, 72, 153, 0.5) !important;
-  background-color: rgba(236, 72, 153, 0.08) !important;
-}
-
-/* Active buttons and custom status indicator badges */
-.genai-mode .brutal-btn-active,
-.genai-mode .mono-btn-active,
-.genai-mode .bg-pink-500 {
-  background-color: #ec4899 !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 15px rgba(236, 72, 153, 0.7) !important;
-  border-color: #f472b6 !important;
-}
-
-/* Pulsating ambient neon container glow for the whole layout */
-.genai-mode {
-  animation: neon-ambient-pulse 4s ease-in-out infinite alternate;
-}
-
-@keyframes neon-ambient-pulse {
-  0% {
-    box-shadow: inset 0 0 20px rgba(236, 72, 153, 0.05);
-  }
-  100% {
-    box-shadow: inset 0 0 40px rgba(236, 72, 153, 0.12);
+    background: #94a3b8;
   }
 }

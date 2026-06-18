@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Space_Grotesk, Rajdhani, Reenie_Beanie } from "next/font/google";
+import { Plus_Jakarta_Sans, Space_Grotesk, Rajdhani, Reenie_Beanie, Orbitron } from "next/font/google";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -24,6 +24,12 @@ const reenieBeanie = Reenie_Beanie({
   subsets: ["latin"],
 });
 
+const orbitron = Orbitron({
+  variable: "--font-orbitron",
+  weight: ["900"],
+  subsets: ["latin"],
+});
+
 export const metadata: Metadata = {
   title: "Cresent AI - Communication DNA Chatbot",
   description: "Personality-aware AI assistant that adapts to your communication DNA, tone context, and emotional mood.",
@@ -37,7 +43,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${reenieBeanie.variable} h-full antialiased`}
+      className={`${plusJakartaSans.variable} ${spaceGrotesk.variable} ${rajdhani.variable} ${reenieBeanie.variable} ${orbitron.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

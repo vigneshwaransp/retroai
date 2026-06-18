@@ -4,7 +4,7 @@ import { SimpleVectorDB, VectorDocument } from '@/lib/vectorDb';
 import { 
   Send, Sparkles, Smile, Bot, Brain, CornerDownLeft, Activity, 
   Cpu, Gauge, Eye, EyeOff, Settings, Trash2, Database, RefreshCw,
-  Star, Flame, Pencil, MessageSquare, Atom, ArrowRight, Paperclip, Mic, Globe, Zap
+  Star, Flame, Pencil, MessageSquare, Atom, ArrowRight, Paperclip, Mic, Globe, Zap, Shrink
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playSynthSound } from '@/app/page';
@@ -104,7 +104,7 @@ const ReasoningBlock = ({ reasoning }: { reasoning?: string }) => {
   if (!reasoning) return null;
 
   return (
-    <div className="mb-3 border border-amber-500/20 bg-amber-500/5 rounded-lg p-3 text-left font-mono relative overflow-hidden select-text">
+    <div className="mb-3 border border-red-500/20 bg-red-500/5 rounded-lg p-3 text-left font-mono relative overflow-hidden select-text">
       <button 
         type="button" 
         onClick={() => setExpanded(!expanded)}
@@ -120,7 +120,7 @@ const ReasoningBlock = ({ reasoning }: { reasoning?: string }) => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 0.8 }}
             exit={{ height: 0, opacity: 0 }}
-            className="text-[12px] leading-relaxed text-neutral-500 dark:text-neutral-400 mt-2 border-t border-amber-500/10 pt-2 whitespace-pre-wrap select-text selection:bg-[var(--accent-primary)]/10 font-sans italic"
+            className="text-[12px] leading-relaxed text-neutral-500 dark:text-neutral-400 mt-2 border-t border-red-500/10 pt-2 whitespace-pre-wrap select-text selection:bg-[var(--accent-primary)]/10 font-sans italic"
           >
             {reasoning}
           </motion.div>
@@ -136,7 +136,7 @@ const SourcesUsed = ({ sources }: { sources?: { title: string; url: string; snip
   return (
     <div className="mt-4 pt-3.5 border-t border-[var(--border-color)]/30 flex flex-col gap-2.5 w-full select-text">
       <div className="flex items-center gap-1.5 font-mono text-[9px] uppercase font-bold text-neutral-400">
-        <Globe className="w-3.5 h-3.5 text-amber-500" />
+        <Globe className="w-3.5 h-3.5 text-red-500" />
         <span>Sources Used</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
@@ -151,10 +151,10 @@ const SourcesUsed = ({ sources }: { sources?: { title: string; url: string; snip
               href={source.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="p-3 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] hover:border-amber-500/50 hover:bg-amber-500/5 transition-all flex flex-col gap-1 shadow-sm text-left group min-w-0"
+              className="p-3 rounded-xl border border-[var(--border-color)] bg-[var(--card-bg)] hover:border-red-500/50 hover:bg-red-500/5 transition-all flex flex-col gap-1 shadow-sm text-left group min-w-0"
               title={source.snippet || source.title}
             >
-              <span className="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate group-hover:text-amber-500 transition-colors">
+              <span className="text-xs font-semibold text-neutral-800 dark:text-neutral-200 truncate group-hover:text-red-500 transition-colors">
                 {source.title}
               </span>
               <span className="text-[9px] font-mono text-neutral-500 truncate">
@@ -193,6 +193,13 @@ interface ChatAreaProps {
   onOpenSettings?: () => void;
   onTriggerAgentMode?: () => void;
   webSearchModel: 'duckduckgo' | 'yahoo';
+  aiJudgeEnabled: boolean;
+  isDnaLocked: boolean;
+  setIsDnaLocked: React.Dispatch<React.SetStateAction<boolean>>;
+  isLoading: boolean;
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  cloneMode: boolean;
+  cloneData: { name: string; age: string; interests: string; color: string; movie: string; actor: string; actress: string } | null;
 }
 
 interface SavedConversation {
@@ -291,6 +298,7 @@ export default function ChatArea({
   const [layoutMode, setLayoutMode] = useState<'comparison' | 'focus'>('focus');
   const [demoProfile, setDemoProfile] = useState<'casual' | 'expert'>('casual');
   const [showStandardPeek, setShowStandardPeek] = useState<Record<string, boolean>>({});
+  const [isCollapsedBubble, setIsCollapsedBubble] = useState(false);
 
   // Vector DB simulation state
   const vectorDb = useMemo(() => new SimpleVectorDB(), []);
@@ -548,13 +556,11 @@ export default function ChatArea({
       
       if (m.sender === 'user') {
         elements.push(
-          <div key={m.id} className="flex flex-col items-end gap-1 w-full self-end max-w-[85%] animate-fade-in">
-            <div className="bg-neutral-200/50 dark:bg-neutral-800/40 text-foreground px-5 py-3.5 rounded-2xl text-[15px] leading-relaxed whitespace-pre-wrap select-text">
+          <div key={m.id} className="flex flex-col items-end gap-1 w-full self-end animate-fade-in my-2">
+            <div className="max-w-[75%] text-left font-sans text-sm text-slate-800 dark:text-slate-100 bg-slate-100 dark:bg-slate-800 p-3 px-4 rounded-2xl relative shadow-sm whitespace-pre-wrap select-text border border-slate-200/55 dark:border-slate-700/50">
+              <span className="text-slate-400 dark:text-slate-500 font-semibold text-[10px] block mb-1">YOU</span>
               {m.text}
             </div>
-            <span className="text-[9px] text-neutral-400 uppercase font-bold tracking-wider px-2.5 font-mono select-none">
-              You
-            </span>
           </div>
         );
       } else if (m.sender === 'cresent-ai') {
@@ -563,26 +569,27 @@ export default function ChatArea({
           const normalReasoning = messages.find(msg => msg.sender === 'normal-ai' && Math.abs(messages.indexOf(msg) - i) <= 2)?.reasoning;
           
           elements.push(
-            <div key={m.id} className="flex flex-col items-start gap-1 w-full self-start animate-fade-in mt-1.5">
-              <div className="flex items-start gap-4.5 w-full">
-                {/* Ultra-Premium Minimalist Logo Monogram */}
-                <div className="w-10 h-10 rounded-full border border-[var(--border-color)] flex items-center justify-center bg-[var(--card-bg)] flex-shrink-0 shadow-sm relative overflow-hidden">
-                  <Logo className="w-6.5 h-6.5 relative z-10" />
-                </div>
+          <div key={m.id} className="flex flex-col items-start gap-1 w-full self-start animate-fade-in my-2">
+            <div className="flex items-start gap-3 w-full">
+              {/* Logo Monogram */}
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-600 flex-shrink-0 relative overflow-hidden">
+                <Logo className="w-5 h-5 relative z-10 filter invert brightness-200" />
+              </div>
                 
-                <div className="flex-1 text-[15px] leading-relaxed text-left select-text pt-0.5">
+                <div className="flex-1 text-sm leading-relaxed text-left select-text pt-0.5 max-w-[85%]">
                   <ReasoningBlock reasoning={m.reasoning} />
-                  <div className="markdown-container font-sans text-neutral-800 dark:text-neutral-200">
+                  <div className="markdown-container text-slate-800 dark:text-slate-100 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-2xl shadow-sm">
+                    <span className="text-blue-600 dark:text-blue-400 font-bold text-[10px] block mb-2">CRESENT ({codecCode})</span>
                     <ReactMarkdown components={markdownComponents}>
                       {m.text}
                     </ReactMarkdown>
                   </div>
 
                   {normalText && (
-                    <div className="mt-3.5 pt-3.5 border-t border-[var(--border-color)]/30 flex flex-col gap-2.5">
+                    <div className="mt-3.5 pt-3.5 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-2.5">
                       <button
                         onClick={() => togglePeek(m.id)}
-                        className="text-[10px] uppercase font-bold text-neutral-400 hover:text-[var(--accent-primary)] flex items-center gap-1.5 font-mono cursor-pointer transition-colors"
+                        className="text-[10px] uppercase font-bold text-slate-400 hover:text-blue-600 flex items-center gap-1.5 cursor-pointer transition-colors"
                       >
                         {showStandardPeek[m.id] ? (
                           <>
@@ -601,10 +608,10 @@ export default function ChatArea({
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden bg-[var(--sidebar-bg)] border border-[var(--border-color)] rounded-xl p-4 text-[14px] text-neutral-600 dark:text-neutral-300 shadow-sm font-sans"
+                            className="overflow-hidden bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 text-[14px] text-slate-600 dark:text-slate-300 shadow-sm"
                           >
-                            <div className="flex items-center gap-1.5 mb-2.5 font-mono text-[9px] uppercase font-bold text-neutral-400">
-                              <Bot className="w-3.5 h-3.5" /> Standard Assistant response
+                            <div className="flex items-center gap-1.5 mb-2.5 text-[10px] uppercase font-bold text-slate-400">
+                              <Bot className="w-3.5 h-3.5" /> Standard Assistant
                             </div>
                             <ReasoningBlock reasoning={normalReasoning} />
                             <ReactMarkdown components={markdownComponents}>
@@ -619,23 +626,23 @@ export default function ChatArea({
                 </div>
               </div>
               
-              <div className="flex items-center gap-3 mt-1.5 pl-14.5 select-none">
-                <span className="text-[8px] text-neutral-400 dark:text-neutral-500 uppercase font-bold tracking-wider font-mono flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-[var(--accent-primary)]" />
-                  Sentry ({persona.language} · {mode})
+              <div className="flex items-center gap-3 mt-1.5 pl-11 select-none">
+                <span className="text-[9px] text-slate-400 uppercase font-semibold tracking-wider flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-blue-500" />
+                  Cresent ({persona.language} · {mode})
                 </span>
                 
                 {/* Tooltip trigger button */}
                 <div className="relative group inline-block">
                   <button 
                     type="button"
-                    className="text-[9px] text-neutral-400 hover:text-[var(--accent-primary)] font-mono font-bold flex items-center gap-0.5 cursor-help transition-colors"
+                    className="text-[9px] text-slate-400 hover:text-blue-500 font-semibold flex items-center gap-0.5 cursor-help transition-colors"
                   >
-                    • [ Why is this different? ]
+                    • Calibration details
                   </button>
-                  <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-72 p-3 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-[11px] text-neutral-700 dark:text-neutral-300 rounded-xl shadow-lg leading-relaxed z-50 select-none pointer-events-none">
-                    <div className="font-bold text-[10px] text-[var(--accent-primary)] uppercase tracking-wider mb-1.5 border-b border-neutral-100 dark:border-neutral-800 pb-1 flex items-center gap-1 font-mono">
-                      <Brain className="w-3.5 h-3.5 animate-pulse" /> DNA Calibration Matrix
+                  <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block w-72 p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px] text-slate-600 dark:text-slate-300 rounded-2xl shadow-lg leading-relaxed z-50 select-none pointer-events-none">
+                    <div className="font-bold text-[10px] text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1.5 border-b border-slate-100 dark:border-slate-800 pb-1 flex items-center gap-1">
+                      <Brain className="w-3.5 h-3.5 animate-pulse" /> DNA MIX CONFIG
                     </div>
                     <ul className="flex flex-col gap-1.5 font-sans">
                       <li>🎯 <strong>Tone ({persona.tone}):</strong> {persona.tone === 'Casual' ? 'Casual slang, informal greetings, developer friend vibe' : persona.tone === 'Formal' ? 'Polite, grammatically perfect professional structure' : persona.tone === 'Neutral' ? 'Objective, dry scientific fact-driven phrasing' : 'Highly enthusiastic motivational and energetic structure'}.</li>
@@ -655,8 +662,8 @@ export default function ChatArea({
         elements.push(
           <div key={m.id} className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 py-2.5 animate-fade-in mt-1">
             
-            <div className="flex flex-col gap-2.5 border border-[var(--border-color)] p-4.5 rounded-xl bg-neutral-200/5 dark:bg-neutral-800/5 shadow-sm">
-              <div className="flex items-center gap-1.5 pb-2 border-b border-[var(--border-color)]/30 select-none font-mono text-[9px] uppercase font-bold text-neutral-400">
+            <div className="flex flex-col gap-2.5 border-3 border-black p-4.5 bg-white dark:bg-black shadow-[3px_3px_0px_rgba(0,0,0,1)]">
+              <div className="flex items-center gap-1.5 pb-2 border-b-2 border-black select-none font-mono text-[9px] uppercase font-bold text-neutral-500">
                 <Bot className="w-3.5 h-3.5" /> Standard LLM response
               </div>
               <div className="text-[15px] leading-relaxed text-left select-text mt-1">
@@ -670,8 +677,8 @@ export default function ChatArea({
             </div>
 
             {siblingCresent && (
-              <div className="flex flex-col gap-2.5 border border-[var(--accent-primary)]/20 p-4.5 rounded-xl bg-[var(--card-bg)] shadow-sm">
-                <div className="flex items-center gap-1.5 pb-2 border-b border-[var(--border-color)]/30 select-none font-mono text-[9px] uppercase font-bold text-[var(--accent-primary)]">
+              <div className="flex flex-col gap-2.5 border-3 border-black p-4.5 bg-white dark:bg-black shadow-[3px_3px_0px_#ef4444]">
+                <div className="flex items-center gap-1.5 pb-2 border-b-2 border-black select-none font-mono text-[9px] uppercase font-bold text-[var(--accent-primary)]">
                   <Sparkles className="w-3.5 h-3.5" /> Cresent AI personalized response
                 </div>
                 <div className="text-[15px] leading-relaxed text-left select-text mt-1">
@@ -726,88 +733,48 @@ export default function ChatArea({
           </div>
         </div>
       )}
-      
+
       {/* Welcome Greeting Screen (Only if no messages) */}
       {messages.length === 0 && (
-        <div className="flex-1 flex flex-col justify-center items-center text-center py-6 w-full select-none font-sans overflow-y-auto pr-1 z-10 max-w-4xl mx-auto">
+        <div className="flex-1 flex flex-col justify-center items-center text-center py-6 w-full select-none overflow-y-auto pr-1 z-10 max-w-4xl mx-auto font-sans text-slate-800 dark:text-slate-100">
           
-          {/* Greeting message */}
-          <div className="flex flex-col items-center gap-1.5 mb-8">
-            <h2 className="text-4xl text-neutral-800 dark:text-neutral-100 flex items-center justify-center gap-2.5 flex-wrap tracking-wide leading-tight">
-              <span className="font-cursive text-6xl text-amber-500 select-text tracking-wider">{greeting}</span>
-              <span className="font-sans font-bold text-white select-text">{persona.name || 'Vicky'}</span>
-              <span className="text-3xl">{greetingEmoji}</span>
-            </h2>
-            <p className="text-sm text-neutral-400 font-semibold tracking-wide mt-1">How can I help you today?</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
+            Welcome to CresentX
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 max-w-md">
+            Your personalized AI companion optimized by Communication DNA settings.
+          </p>
 
-            {/* DNA Badges Row */}
-            <div className="flex items-center gap-2.5 flex-wrap justify-center mt-3 text-xs select-none">
-              <span className="text-[10px] uppercase font-bold text-amber-500 font-mono tracking-wider flex items-center gap-1">
-                <Activity className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                <span>Your Communication DNA</span>
-              </span>
-              <span className="px-3.5 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 text-amber-500 font-semibold text-[11px]">{persona.tone}</span>
-              <span className="px-3.5 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 text-amber-500 font-semibold text-[11px]">{persona.emojiUsage ? 'Empathetic' : 'Thoughtful'}</span>
-              <span className="px-3.5 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 text-amber-500 font-semibold text-[11px]">{persona.length === 'Short' ? 'Surface' : persona.length === 'Detailed' ? 'Detailed' : 'Medium'} Depth</span>
-              <span className="px-3.5 py-1.5 rounded-full border border-amber-500/20 bg-amber-500/5 text-amber-500 font-semibold text-[11px]">{persona.level === 'Basic' ? 'Basic' : persona.level === 'Beginner' ? 'Intermediate' : 'Expert'}</span>
+          <div className="text-left w-full max-w-xl border border-slate-200 dark:border-slate-800 p-5 bg-white dark:bg-slate-900 rounded-2xl shadow-sm my-4 text-xs leading-relaxed flex flex-col gap-2">
+            <div className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-[10px]">Active DNA Calibration Profile</div>
+            <div className="grid grid-cols-2 gap-2 text-slate-600 dark:text-slate-300 mt-1 font-medium">
+              <div>Tone: <span className="text-blue-600 dark:text-blue-400">{persona.tone}</span></div>
+              <div>Emoji usage: <span className="text-blue-600 dark:text-blue-400">{persona.emojiUsage ? 'Enabled' : 'Disabled'}</span></div>
+              <div>Complexity: <span className="text-blue-600 dark:text-blue-400">{persona.level}</span></div>
+              <div>Language: <span className="text-blue-600 dark:text-blue-400">{persona.language}</span></div>
             </div>
           </div>
 
           {/* Suggested Conversations section */}
-          <div className="w-full flex flex-col gap-4 mb-10 select-none">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-500 font-mono justify-start">
-              <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
-              <span>Suggested Conversations</span>
-            </div>
+          <div className="w-full flex flex-col gap-3 mt-6 select-none max-w-xl text-left">
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Suggested Prompts</div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5 w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {([
-                {
-                  title: "Explain quantum computing baselines",
-                  subtitle: "Expand my knowledge",
-                  icon: Atom,
-                  color: "text-amber-500",
-                },
-                {
-                  title: "Roast my Next.js tech stack",
-                  subtitle: "Be brutally honest",
-                  icon: Flame,
-                  color: "text-orange-500",
-                },
-                {
-                  title: "Write a witty tagline for an image scanner app",
-                  subtitle: "Creative & catchy",
-                  icon: Pencil,
-                  color: "text-amber-400",
-                },
-                {
-                  title: "Give me conversational Tamil expressions",
-                  subtitle: "With meanings",
-                  icon: MessageSquare,
-                  color: "text-amber-500",
-                }
-              ] as const).map((card, idx) => {
-                const CardIcon = card.icon;
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleSend(card.title)}
-                    className="p-5 rounded-2xl border border-neutral-800 bg-neutral-950/40 hover:border-amber-500/40 hover:bg-neutral-850/40 text-left transition-all duration-300 cursor-pointer flex flex-col justify-between h-[152px] shadow-sm relative group"
-                  >
-                    <div className="flex flex-col gap-2">
-                      <CardIcon className={`w-5.5 h-5.5 ${card.color}`} />
-                      <h4 className="text-[13px] font-semibold text-neutral-100 group-hover:text-amber-500 transition-colors leading-snug">{card.title}</h4>
-                      <p className="text-[10px] text-neutral-500 leading-normal">{card.subtitle}</p>
-                    </div>
-                    <div className="flex justify-end w-full">
-                      <span className="w-6 h-6 rounded-full border border-neutral-700 flex items-center justify-center text-neutral-400 group-hover:border-amber-500 group-hover:text-amber-500 transition-all">
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
+                "Explain quantum computing baselines",
+                "Roast my Next.js tech stack",
+                "Write a tagline for an image scanner app",
+                "Give me conversational Tamil expressions"
+              ] as const).map((title, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSend(title)}
+                  className="px-3.5 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-blue-500 hover:bg-slate-50 dark:hover:bg-slate-800 text-left text-xs font-medium cursor-pointer transition-all shadow-sm"
+                >
+                  {title}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -820,131 +787,115 @@ export default function ChatArea({
           className="flex-1 overflow-y-auto px-1 py-2 flex flex-col gap-6 w-full pr-2"
         >
           {renderMessageStream()}
-          
-          {isLoading && (
-            <div className="self-start flex flex-col gap-1.5 animate-fade-in">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full border border-[var(--border-color)] flex items-center justify-center bg-[var(--card-bg)] flex-shrink-0 shadow-sm relative overflow-hidden animate-[pulse_2.5s_infinite]">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5.5 h-5.5">
-                    <defs>
-                      <linearGradient id="triGrad-spin" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="var(--accent-primary)" />
-                        <stop offset="100%" stopColor="var(--accent-primary-hover)" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M12 2L6 12h12L12 2z" stroke="url(#triGrad-spin)" strokeWidth="1.5" strokeLinejoin="round" fill="none" className="opacity-95" />
-                    <path d="M8 9l-6 10h12L8 9z" stroke="url(#triGrad-spin)" strokeWidth="1.5" strokeLinejoin="round" fill="none" className="opacity-75" />
-                    <path d="M16 9l-6 10h12L16 9z" stroke="url(#triGrad-spin)" strokeWidth="1.5" strokeLinejoin="round" fill="none" className="opacity-85" />
-                  </svg>
-                </div>
-                <div className="bg-neutral-100 dark:bg-neutral-900 border border-[var(--border-color)] p-3 rounded-2xl rounded-bl-none flex gap-1.5 items-center shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-primary)] animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
-              {(engine === 'nvidia' || engine === 'gemma') && (
-                <span className="text-[10px] text-neutral-400 dark:text-neutral-500 font-mono pl-13 select-none animate-pulse">
-                  {engine === 'gemma' ? 'Analyzing via Llama 3.3 (GenAI Mode)...' : 'Thinking long for a better response...'}
-                </span>
-              )}
-            </div>
-          )}
+
         </div>
       )}
 
       {/* Center Input Panel */}
       <div className="w-full pt-4 flex flex-col gap-2.5 relative z-10 flex-shrink-0 max-w-3xl mx-auto select-none">
         
-        {showVectorIndicator && (
-          <div className="mx-2 px-3 py-2 rounded-xl border border-[var(--accent-primary)]/20 bg-[var(--accent-primary)]/5 flex items-center justify-between animate-[fadeIn_0.25s_ease] text-[10px] font-mono select-none">
-            <div className="flex items-center gap-1.5 text-[var(--accent-primary)] font-bold">
-              <Database className="w-3.5 h-3.5 animate-pulse" />
-              <span>Vector DB: Parsing patterns & updating semantic memory layer...</span>
-            </div>
-            {vectorSearchMatches.length > 0 && (
-              <span className="text-neutral-500 font-semibold">Matched query: {(vectorSearchMatches[0].score * 100).toFixed(0)}% similarity</span>
-            )}
-          </div>
-        )}
-
         {/* Input box */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend(input);
-          }}
-          className="w-full border border-neutral-800 rounded-3xl bg-neutral-900/60 focus-within:border-amber-500/50 transition-all p-2.5 flex flex-col gap-2 shadow-2xl relative"
-        >
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSend(input);
-              }
-            }}
-            placeholder={`Ask Cresent AI anything...`}
-            disabled={isLoading}
-            rows={2}
-            className="w-full px-3 py-2 bg-transparent text-[15px] text-white resize-none outline-none border-none placeholder-neutral-500 leading-relaxed font-sans"
-          />
-
-          <div className="flex items-center justify-between pt-1 px-2">
-            <div className="flex items-center gap-2 flex-wrap">
-
-
-
-
-              {/* Search button */}
-              <button
-                type="button"
-                onClick={() => {
-                  playSynthSound('click', isMuted);
-                  setWebSearchEnabled(prev => !prev);
-                }}
-                className={`px-3.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
-                  webSearchEnabled
-                    ? 'border-amber-500 bg-amber-500/10 text-amber-500 font-bold'
-                    : 'bg-neutral-950 border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
-                }`}
-              >
-                <Globe className="w-3.5 h-3.5" />
-                <span>Web Search</span>
-              </button>
-
-              {/* Agent Mode button with NEW badge */}
-              <button
-                type="button"
-                onClick={() => {
-                  playSynthSound('click', isMuted);
-                  if (onTriggerAgentMode) onTriggerAgentMode();
-                }}
-                className="px-3.5 py-1.5 rounded-xl bg-neutral-950 border border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
-                <span>Agent Mode</span>
-                <span className="bg-amber-500 text-neutral-950 text-[8px] font-black px-1.5 py-0.5 rounded leading-none">NEW</span>
-              </button>
-            </div>
-
-            {/* Circular submit button */}
+        {isCollapsedBubble ? (
+          <div className="fixed bottom-6 right-6 z-50 select-none">
             <button
-              type="submit"
-              disabled={isLoading || !input.trim()}
-              className={`w-9 h-9 rounded-full flex items-center justify-center cursor-pointer transition-all ${
-                input.trim() 
-                  ? 'bg-amber-500 text-neutral-950 shadow-md hover:bg-amber-400 active:scale-95' 
-                  : 'bg-neutral-800 text-neutral-500 cursor-not-allowed'
-              }`}
+              onClick={() => {
+                playSynthSound('click', isMuted);
+                setIsCollapsedBubble(false);
+              }}
+              className="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex flex-col items-center justify-center transition-all hover:scale-105 cursor-pointer shadow-lg"
+              title="Expand Chat Input Box"
             >
-              <Send className="w-4 h-4 transform -rotate-45 translate-x-0.5 -translate-y-0.5" />
+              <MessageSquare className="w-6 h-6" />
             </button>
           </div>
-        </form>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSend(input);
+            }}
+            className="w-full border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 rounded-2xl shadow-md relative"
+          >
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend(input);
+                }
+              }}
+              placeholder={`Ask CresentX anything...`}
+              disabled={isLoading}
+              rows={2}
+              className="w-full px-3 py-1 bg-transparent text-sm text-slate-800 dark:text-slate-100 resize-none outline-none border-none placeholder-slate-400 dark:placeholder-slate-500 leading-relaxed font-sans"
+            />
 
-        <span className="text-[10px] text-neutral-500 font-mono text-center select-none">Press Shift + Enter for new line</span>
+            <div className="flex items-center justify-between pt-1 px-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSynthSound('click', isMuted);
+                    setWebSearchEnabled(prev => !prev);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-all ${
+                    webSearchEnabled
+                      ? 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50'
+                      : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  <span>Search</span>
+                </button>
+
+                {/* Agent Mode button with NEW badge */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSynthSound('click', isMuted);
+                    if (onTriggerAgentMode) onTriggerAgentMode();
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium cursor-pointer transition-all"
+                >
+                  <Zap className="w-3.5 h-3.5 text-blue-500 fill-blue-500/10" />
+                  <span>Agent Mode</span>
+                </button>
+
+                {/* Shrink / Bubble toggle button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    playSynthSound('click', isMuted);
+                    setIsCollapsedBubble(true);
+                  }}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-medium cursor-pointer transition-all"
+                  title="Shrink input area into bubble"
+                >
+                  <Shrink className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Shrink</span>
+                </button>
+              </div>
+
+              {/* Circular submit button */}
+              <button
+                type="submit"
+                disabled={isLoading || !input.trim()}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-all ${
+                  input.trim() 
+                    ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed border border-transparent'
+                }`}
+              >
+                <Send className="w-4 h-4 transform -rotate-45 translate-x-0.5 -translate-y-0.5" />
+              </button>
+            </div>
+          </form>
+        )}
+
+        {!isCollapsedBubble && (
+          <span className="text-[10px] text-slate-400 text-center select-none font-sans">Press Shift + Enter for new line</span>
+        )}
       </div>
 
     </div>
