@@ -238,7 +238,7 @@ async function fetchGroq(systemPrompt: string | null, userPrompt: string, apiKey
     },
     body: JSON.stringify({
       messages,
-      model: modelName || 'llama-3.3-70b-versatile',
+      model: modelName || 'qwen/qwen3-32b',
       temperature: 0.7
     })
   });
@@ -634,7 +634,7 @@ GROUNDING CONSTRAINTS:
 - You MUST mention/cite the source titles and link to their URLs in markdown format (e.g. [Source Title](URL)) inside your response text.`
       : prompt;
 
-    const selectedEngine = engine || 'pollinations';
+    const selectedEngine = engine || 'groq';
 
     let personalizedPrompt = queryPrompt;
     if (persona && persona.language) {

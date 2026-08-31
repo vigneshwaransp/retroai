@@ -8,7 +8,7 @@ export async function GET() {
     hasGroqKey: !!process.env.GROQ_API_KEY,
     hasNvidiaKey: !!process.env.NVIDIA_API_KEY,
     hfModel: process.env.HF_MODEL || 'ibm-granite/granite-3.0-8b-instruct',
-    groqModel: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+    groqModel: process.env.GROQ_MODEL || 'qwen/qwen3-32b',
   });
 }
 export const dynamic = 'force-dynamic';

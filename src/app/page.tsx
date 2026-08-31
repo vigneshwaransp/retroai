@@ -160,7 +160,7 @@ export default function Home() {
   const [hfModel, setHfModel] = useState('ibm-granite/granite-3.0-8b-instruct');
   const [hfToken, setHfToken] = useState('');
   const [groqModel, setGroqModel] = useState('qwen/qwen3-32b');
-  const [engine, setEngine] = useState<'pollinations' | 'gemini' | 'openai' | 'huggingface' | 'groq' | 'nvidia' | 'gemma'>('nvidia');
+  const [engine, setEngine] = useState<'pollinations' | 'gemini' | 'openai' | 'huggingface' | 'groq' | 'nvidia' | 'gemma'>('groq');
   const [isDnaLocked, setIsDnaLocked] = useState(false);
   const [aiJudgeEnabled, setAiJudgeEnabled] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -187,9 +187,9 @@ export default function Home() {
     hasOpenaiKey: false,
     hasHfToken: false,
     hasGroqKey: false,
-    hasNvidiaKey: true,
+    hasNvidiaKey: false,
     hfModel: 'ibm-granite/granite-3.0-8b-instruct',
-    groqModel: 'llama-3.3-70b-versatile',
+    groqModel: 'qwen/qwen3-32b',
   });
 
   // Daily News states
@@ -973,12 +973,12 @@ export default function Home() {
                       
                       <div className="flex flex-col gap-2">
                         {([
-                          { id: 'nvidia', label: '🟢 NVIDIA Kimi-k2.6' },
+                          { id: 'groq', label: '⚡ Groq LPU (Native Default)' },
                           { id: 'pollinations', label: '🚀 Pollinations Core' },
                           { id: 'openai', label: '🧠 OpenAI GPT' },
                           { id: 'gemini', label: '✨ Google Gemini' },
                           { id: 'huggingface', label: '🤗 Hugging Face' },
-                          { id: 'groq', label: '⚡ Groq LPU' }
+                          { id: 'nvidia', label: '🟢 NVIDIA Kimi-k2.6 (Legacy)' }
                         ] as const).map(item => {
                           const isSelected = engine === item.id;
                           return (
@@ -1068,11 +1068,11 @@ export default function Home() {
                       <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-400 font-mono">Engine Node Security:</span>
                       
                       <div className="flex flex-col gap-3 text-xs">
-                        {/* NVIDIA Core */}
+                        {/* Groq */}
                         <div className="p-3 border-3 border-black bg-[var(--background)] shadow-[2px_2px_0px_rgba(0,0,0,1)] flex flex-col gap-1">
-                          <span className="font-bold text-neutral-800 dark:text-neutral-200">NVIDIA Kimi Core</span>
-                          <span className="text-[10px] text-neutral-500 leading-normal">Running moonshotai/kimi-k2.6 over NVIDIA AI integrations. Securely configured via client authorization token.</span>
-                          <span className="text-[9px] text-[#00E65A] font-bold mt-1 font-mono">ACTIVE (PROD ENGINE)</span>
+                          <span className="font-bold text-neutral-800 dark:text-neutral-200">Groq Core</span>
+                          <span className="text-[10px] text-neutral-500 leading-normal">Native low-latency completion core for CresentX DNA engine processing.</span>
+                          <span className="text-[9px] text-[#00E65A] font-bold mt-1 font-mono">ACTIVE (NATIVE DEFAULT)</span>
                         </div>
 
                         {/* Pollinations */}
@@ -1082,11 +1082,11 @@ export default function Home() {
                           <span className="text-[9px] text-emerald-500 font-bold mt-1 font-mono">ACTIVE (FREE)</span>
                         </div>
 
-                        {/* Groq */}
+                        {/* NVIDIA Core */}
                         <div className="p-3 border-3 border-black bg-[var(--background)] shadow-[2px_2px_0px_rgba(0,0,0,1)] flex flex-col gap-1">
-                          <span className="font-bold text-neutral-800 dark:text-neutral-200">Groq Core</span>
-                          <span className="text-[10px] text-neutral-500 leading-normal">Optimized low-latency reasoning node for CresentX DNA engine processing.</span>
-                          <span className="text-[9px] text-emerald-500 font-bold mt-1 font-mono">ACTIVE (SECURE)</span>
+                          <span className="font-bold text-neutral-800 dark:text-neutral-200">NVIDIA Kimi Core</span>
+                          <span className="text-[10px] text-neutral-500 leading-normal">Legacy optional engine for compatibility with existing NVIDIA API integrations.</span>
+                          <span className="text-[9px] text-neutral-500 font-bold mt-1 font-mono">OPTIONAL (LEGACY)</span>
                         </div>
 
                         {/* Gemini */}
